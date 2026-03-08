@@ -1,0 +1,756 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="NSIA Dashboard">
+<title>NSIA Invest — Dashboard · P62538</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  body { min-height:100vh; background:linear-gradient(135deg,#0a0f1e 0%,#0d1b2a 50%,#0a1628 100%); font-family:Georgia,serif; color:#e8eaf0; padding:24px 16px 60px; }
+  .app-wrapper { max-width:1200px; margin:0 auto; }
+
+  @media (min-width:768px) {
+    body { padding:32px 32px 60px; }
+    .desktop-grid { display:grid; grid-template-columns:1fr 1fr; gap:20px; align-items:start; }
+  }
+  @media (max-width:767px) {
+    .desktop-grid { display:block; }
+    .col-left > *, .col-right > * { margin-bottom:16px; }
+  }
+
+  .header { text-align:center; margin-bottom:28px; }
+  .tag { font-size:9px; letter-spacing:4px; color:#00D4AA; margin-bottom:8px; text-transform:uppercase; }
+  .header h1 { font-size:clamp(24px,4vw,38px); font-weight:300; letter-spacing:2px; margin-bottom:6px; }
+  .header h1 span { color:#00D4AA; font-style:italic; }
+  .sub { font-size:clamp(10px,1.5vw,13px); color:#6b7a99; }
+
+  .toggle { display:flex; justify-content:center; gap:8px; margin-bottom:20px; flex-wrap:wrap; }
+  .toggle button { padding:8px 18px; border-radius:20px; border:1px solid #1e2d45; background:transparent; color:#6b7a99; cursor:pointer; font-size:clamp(9px,1.2vw,11px); letter-spacing:1px; font-family:Georgia,serif; transition:all .3s; }
+  .toggle button.active { border-color:#00D4AA; background:rgba(0,212,170,.12); color:#00D4AA; }
+
+  .summary-box { background:rgba(255,255,255,.03); border:1px solid rgba(255,255,255,.09); border-radius:16px; padding:20px; margin-bottom:16px; }
+  .summary-title { font-size:9px; letter-spacing:3px; color:#6b7a99; margin-bottom:16px; text-align:center; }
+  .summary-row { display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px; margin-bottom:14px; }
+  .scard { text-align:center; }
+  .scard-lbl { font-size:clamp(7px,1vw,9px); letter-spacing:1.2px; color:#6b7a99; margin-bottom:6px; }
+  .scard-val { font-size:clamp(12px,2vw,18px); font-weight:700; }
+  .scard-sub { font-size:clamp(8px,.9vw,10px); color:#6b7a99; margin-top:3px; }
+  .gain-banner { border-radius:12px; padding:14px 18px; display:flex; justify-content:space-between; align-items:center; }
+  .gain-banner.pos { background:rgba(0,212,170,.08); border:1px solid rgba(0,212,170,.2); }
+  .gain-banner.neg { background:rgba(255,107,107,.08); border:1px solid rgba(255,107,107,.2); }
+  .gb-label { font-size:9px; letter-spacing:2px; color:#6b7a99; margin-bottom:4px; }
+  .gb-diff { font-size:clamp(18px,3vw,26px); font-weight:700; }
+  .gb-pct  { font-size:clamp(20px,3.5vw,28px); font-weight:700; }
+  .gb-sub  { font-size:9px; color:#6b7a99; margin-top:3px; }
+
+  .mini-cards { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:16px; }
+  .mini-card { background:rgba(255,255,255,.02); border:1px solid rgba(255,255,255,.07); border-radius:14px; padding:14px 16px; }
+  .mc-header { display:flex; align-items:center; gap:6px; margin-bottom:12px; }
+  .mc-dot { width:6px; height:6px; border-radius:50%; }
+  .mc-title { font-size:clamp(8px,1vw,10px); letter-spacing:2px; color:#6b7a99; }
+  .mc-row { display:flex; justify-content:space-between; align-items:baseline; margin-bottom:5px; }
+  .mc-key { font-size:clamp(9px,1vw,11px); color:#6b7a99; }
+  .mc-val { font-size:clamp(11px,1.5vw,14px); font-weight:600; }
+  .mc-gain { display:flex; justify-content:space-between; margin-top:8px; padding-top:8px; border-top:1px solid rgba(255,255,255,.05); }
+  .mc-gain-val { font-size:clamp(10px,1.3vw,13px); font-weight:700; }
+  .mc-gain-pct { font-size:clamp(10px,1.3vw,13px); font-weight:700; }
+
+  .progress-box { background:rgba(255,255,255,.03); border:1px solid rgba(255,255,255,.07); border-radius:14px; padding:16px; margin-bottom:16px; }
+  .progress-top { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:10px; }
+  .progress-title { font-size:clamp(9px,1.2vw,11px); letter-spacing:1px; color:#6b7a99; }
+  .phase-lbl { font-size:clamp(8px,1vw,10px); color:#00D4AA; opacity:.8; margin-top:3px; }
+  .progress-right { display:flex; align-items:center; gap:8px; flex-shrink:0; }
+  .prog-pct { font-size:clamp(11px,1.5vw,14px); color:#00D4AA; font-weight:700; }
+  .edit-obj-btn { font-size:clamp(8px,1vw,10px); padding:4px 10px; border-radius:8px; border:1px solid rgba(0,212,170,.25); background:rgba(0,212,170,.07); color:#00D4AA; cursor:pointer; font-family:Georgia,serif; }
+  .congrats { display:none; background:rgba(0,212,170,.08); border:1px solid rgba(0,212,170,.3); border-radius:10px; padding:10px 14px; margin-bottom:10px; text-align:center; font-size:clamp(10px,1.2vw,12px); color:#00D4AA; }
+  .pbar { background:rgba(255,255,255,.06); border-radius:10px; height:8px; overflow:hidden; margin-bottom:8px; }
+  .pfill { height:100%; border-radius:10px; background:linear-gradient(90deg,#00D4AA,#4A9EFF); box-shadow:0 0 8px rgba(0,212,170,.5); transition:width 1.8s ease; }
+  .pfooter { display:flex; justify-content:space-between; }
+  .pfooter span { font-size:clamp(8px,1vw,10px); color:#6b7a99; }
+  .chips { display:flex; gap:6px; margin-top:12px; flex-wrap:wrap; }
+  .chip { font-size:clamp(8px,.9vw,10px); padding:5px 12px; border-radius:12px; cursor:pointer; border:1px solid rgba(255,255,255,.1); background:rgba(255,255,255,.04); color:#6b7a99; font-family:Georgia,serif; transition:all .2s; }
+  .chip.cur { background:rgba(0,212,170,.12); border-color:#00D4AA; color:#00D4AA; }
+  .chip:hover { border-color:#00D4AA; color:#00D4AA; }
+
+  .sbox { background:rgba(255,255,255,.02); border:1px solid rgba(255,255,255,.07); border-radius:14px; overflow:hidden; margin-bottom:16px; }
+  .shdr { padding:14px 18px; border-bottom:1px solid rgba(255,255,255,.05); display:flex; justify-content:space-between; align-items:center; }
+  .shdr span { font-size:clamp(9px,1.1vw,11px); letter-spacing:2px; color:#6b7a99; }
+  .abtn { font-size:clamp(9px,1vw,11px); padding:6px 14px; border-radius:10px; border:1px solid rgba(0,212,170,.3); background:rgba(0,212,170,.08); color:#00D4AA; cursor:pointer; font-family:Georgia,serif; white-space:nowrap; transition:all .2s; }
+  .abtn:hover { background:rgba(0,212,170,.16); }
+
+  .frow { padding:14px 18px; border-bottom:1px solid rgba(255,255,255,.04); }
+  .frow:last-child { border-bottom:none; }
+  .fnrow { display:flex; align-items:center; gap:8px; margin-bottom:10px; }
+  .fdot { width:8px; height:8px; border-radius:50%; flex-shrink:0; }
+  .ftitle { font-size:clamp(10px,1.3vw,13px); font-weight:500; flex:1; }
+  .badge { font-size:clamp(7px,.8vw,9px); padding:2px 7px; border-radius:8px; }
+  .bp2  { background:rgba(255,181,71,.12); color:#FFB547; }
+  .bnew { background:rgba(0,212,170,.12); color:#00D4AA; }
+  .row-actions { display:flex; gap:6px; }
+  .btn-edit-row { font-size:11px; padding:3px 8px; border-radius:7px; border:1px solid rgba(0,212,170,.25); background:rgba(0,212,170,.07); color:#00D4AA; cursor:pointer; font-family:Georgia,serif; }
+  .btn-del-row  { font-size:11px; padding:3px 8px; border-radius:7px; border:1px solid rgba(255,107,107,.25); background:rgba(255,107,107,.07); color:#FF6B6B; cursor:pointer; font-family:Georgia,serif; }
+
+  .fvals { display:grid; grid-template-columns:repeat(5,1fr); gap:5px; margin-bottom:10px; }
+  .fcol { text-align:center; }
+  .fclbl { font-size:clamp(6px,.8vw,8px); color:#6b7a99; margin-bottom:4px; letter-spacing:.8px; text-transform:uppercase; }
+  .fcval { font-size:clamp(10px,1.2vw,13px); font-weight:600; cursor:pointer; padding:4px 3px; border-radius:6px; border:1px dashed rgba(255,255,255,.1); min-height:28px; display:flex; align-items:center; justify-content:center; transition:border-color .2s; }
+  .fcval:hover { border-color:rgba(255,255,255,.3); }
+  .fcval.no-edit { cursor:default; border-color:transparent; }
+  .gpct { font-size:clamp(7px,.8vw,9px); opacity:.75; margin-top:2px; }
+  .alloc-bar-wrap { margin-top:6px; }
+  .alloc-bar-lbl { display:flex; justify-content:space-between; margin-bottom:3px; }
+  .alloc-bar-lbl span { font-size:clamp(7px,.8vw,9px); color:#6b7a99; }
+  .alloc-bar-lbl span:last-child { color:#4A9EFF; }
+  .alloc-track { background:rgba(255,255,255,.06); border-radius:6px; height:5px; overflow:hidden; }
+  .alloc-fill { height:100%; border-radius:6px; transition:width .8s ease; }
+
+  .brvm-box { background:rgba(74,158,255,.04); border:1px solid rgba(74,158,255,.2); border-radius:14px; margin-bottom:16px; overflow:hidden; }
+  .brvm-hdr { padding:14px 18px; border-bottom:1px solid rgba(74,158,255,.1); display:flex; justify-content:space-between; align-items:center; }
+  .brvm-hdr span { font-size:clamp(9px,1.1vw,11px); letter-spacing:2px; color:#4A9EFF; }
+  .arow { padding:14px 18px; border-bottom:1px solid rgba(74,158,255,.06); }
+  .arow:last-child { border-bottom:none; }
+  .anrow { display:flex; align-items:center; gap:8px; margin-bottom:8px; }
+  .adot { width:8px; height:8px; border-radius:50%; flex-shrink:0; }
+  .atitle { font-size:clamp(10px,1.3vw,13px); font-weight:500; flex:1; }
+  .asgi { font-size:clamp(7px,.8vw,9px); padding:2px 8px; border-radius:6px; background:rgba(255,255,255,.06); color:#6b7a99; }
+  .avals { display:grid; grid-template-columns:repeat(4,1fr); gap:5px; margin-top:8px; }
+  .acol { text-align:center; }
+  .aclbl { font-size:clamp(6px,.8vw,8px); color:#6b7a99; margin-bottom:4px; letter-spacing:.8px; }
+  .acval { font-size:clamp(10px,1.2vw,13px); font-weight:600; cursor:pointer; padding:4px 3px; border-radius:5px; border:1px dashed rgba(255,255,255,.1); min-height:26px; display:flex; align-items:center; justify-content:center; transition:border-color .2s; }
+  .acval:hover { border-color:rgba(255,255,255,.3); }
+  .acval.no-edit { cursor:default; border-color:transparent; }
+  .apct { font-size:clamp(7px,.8vw,9px); opacity:.7; margin-top:2px; }
+  .empty-brvm { padding:20px; text-align:center; font-size:clamp(10px,1.2vw,12px); color:#6b7a99; }
+
+  /* HISTORIQUE — MODIFIABLE */
+  .hrow { padding:12px 18px; border-bottom:1px solid rgba(255,255,255,.04); display:flex; justify-content:space-between; align-items:center; gap:8px; }
+  .hrow:last-child { border-bottom:none; }
+  .hrow-left { flex:1; min-width:0; }
+  .hdate  { font-size:clamp(9px,1vw,11px); color:#6b7a99; margin-bottom:2px; }
+  .hamnt  { font-size:clamp(11px,1.3vw,14px); color:#00D4AA; font-weight:600; }
+  .htot   { font-size:clamp(8px,.9vw,10px); color:#4A9EFF; margin-top:2px; }
+  .hrow-actions { display:flex; gap:5px; flex-shrink:0; }
+
+  .tip-box { background:rgba(0,212,170,.04); border:1px solid rgba(0,212,170,.12); border-radius:14px; padding:16px 18px; }
+  .tip-title { font-size:clamp(9px,1vw,11px); letter-spacing:2px; color:#00D4AA; margin-bottom:10px; }
+  .tip-text { font-size:clamp(10px,1.2vw,12px); color:#6b7a99; line-height:2; }
+  .tip-text strong { color:#e8eaf0; }
+  .footer { text-align:center; margin-top:28px; font-size:clamp(8px,.9vw,10px); color:#1e2d45; letter-spacing:2px; }
+
+  .mo { display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,.8); z-index:100; justify-content:center; align-items:center; padding:20px; }
+  .mo.open { display:flex; }
+  .md { background:#0d1b2a; border:1px solid rgba(255,255,255,.12); border-radius:18px; padding:24px; width:100%; max-width:400px; max-height:90vh; overflow-y:auto; }
+  .md h3 { font-size:clamp(13px,1.5vw,16px); color:#00D4AA; margin-bottom:20px; font-weight:400; letter-spacing:1px; }
+  .md label { font-size:clamp(9px,1vw,11px); color:#6b7a99; letter-spacing:1px; display:block; margin-bottom:6px; }
+  .md input, .md select { width:100%; background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.1); border-radius:8px; color:#fff; padding:11px 14px; font-size:clamp(13px,1.5vw,16px); outline:none; font-family:Georgia,serif; margin-bottom:14px; }
+  .md input:focus, .md select:focus { border-color:#00D4AA; }
+  .md select option { background:#0d1b2a; }
+  .preset-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:14px; }
+  .pbtn { padding:11px; border-radius:10px; border:1px solid rgba(255,255,255,.1); background:rgba(255,255,255,.04); color:#e8eaf0; cursor:pointer; font-size:clamp(10px,1.2vw,13px); font-family:Georgia,serif; text-align:center; transition:all .2s; }
+  .pbtn:hover { border-color:#00D4AA; color:#00D4AA; background:rgba(0,212,170,.08); }
+  .crow { display:flex; gap:8px; margin-bottom:14px; flex-wrap:wrap; }
+  .cdot { width:30px; height:30px; border-radius:50%; cursor:pointer; border:2px solid transparent; transition:all .2s; }
+  .cdot.sel { border-color:#fff; transform:scale(1.2); }
+  .mbtns { display:flex; gap:10px; }
+  .mbtns button { flex:1; padding:12px; border-radius:10px; border:none; cursor:pointer; font-size:clamp(11px,1.3vw,14px); font-family:Georgia,serif; font-weight:600; transition:opacity .2s; }
+  .mbtns button:hover { opacity:.85; }
+  .bok  { background:#00D4AA; color:#0a0f1e; }
+  .bno  { background:rgba(255,255,255,.06); color:#6b7a99; }
+  .bdel { background:rgba(255,107,107,.12); color:#FF6B6B; border:1px solid rgba(255,107,107,.3) !important; }
+  .warn { background:rgba(255,107,107,.08); border:1px solid rgba(255,107,107,.2); border-radius:10px; padding:14px; margin-bottom:14px; font-size:clamp(10px,1.2vw,12px); color:#FF6B6B; text-align:center; }
+  .modal-sep { height:1px; background:rgba(255,255,255,.07); margin:14px 0; }
+  .modal-section-title { font-size:9px; letter-spacing:2px; color:#6b7a99; margin-bottom:10px; }
+</style>
+</head>
+<body>
+<div class="app-wrapper">
+
+  <div class="header">
+    <div class="tag">Tableau de Bord Personnel</div>
+    <h1>NSIA <span>Invest</span></h1>
+    <div class="sub">OUATTARA MAMADOU · Compte P62538 · Mis à jour le <span id="last-update">07/03/2026</span></div>
+  </div>
+
+  <div class="toggle">
+    <button class="active" onclick="setView('all')" id="btn-all">TOUS LES FONDS</button>
+    <button onclick="setView('main')" id="btn-main">3 FONDS PRINCIPAUX</button>
+  </div>
+
+  <div class="summary-box">
+    <div class="summary-title">RÉSUMÉ GLOBAL DU PORTEFEUILLE</div>
+    <div class="summary-row">
+      <div class="scard">
+        <div class="scard-lbl">TOTAL INVESTI</div>
+        <div class="scard-val" style="color:#94a3b8" id="s-invested">—</div>
+        <div class="scard-sub">Capital versé</div>
+      </div>
+      <div class="scard">
+        <div class="scard-lbl">TOTAL VALEUR</div>
+        <div class="scard-val" style="color:#00D4AA" id="s-current">—</div>
+        <div class="scard-sub">Valeur actuelle</div>
+      </div>
+      <div class="scard">
+        <div class="scard-lbl">PATRIMOINE</div>
+        <div class="scard-val" style="color:#FFB547" id="s-patrimoine">—</div>
+        <div class="scard-sub">NSIA + BRVM</div>
+      </div>
+    </div>
+    <div class="gain-banner pos" id="gain-banner">
+      <div>
+        <div class="gb-label">GAIN TOTAL NET</div>
+        <div class="gb-diff" id="gb-diff">+0 FCFA</div>
+        <div class="gb-sub">Différence valeur − investi</div>
+      </div>
+      <div style="text-align:right">
+        <div class="gb-pct" id="gb-pct">+0.00%</div>
+        <div class="gb-sub">Rendement global</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="mini-cards">
+    <div class="mini-card">
+      <div class="mc-header"><div class="mc-dot" style="background:#00D4AA"></div><span class="mc-title">NSIA INVEST</span></div>
+      <div class="mc-row"><span class="mc-key">Investi</span><span class="mc-val" style="color:#94a3b8" id="mc-nsia-inv">—</span></div>
+      <div class="mc-row"><span class="mc-key">Valeur</span><span class="mc-val" style="color:#00D4AA" id="mc-nsia-cur">—</span></div>
+      <div class="mc-gain">
+        <span class="mc-gain-val" id="mc-nsia-g">—</span>
+        <span class="mc-gain-pct" id="mc-nsia-p">—</span>
+      </div>
+    </div>
+    <div class="mini-card">
+      <div class="mc-header"><div class="mc-dot" style="background:#4A9EFF"></div><span class="mc-title">BRVM</span></div>
+      <div class="mc-row"><span class="mc-key">Investi</span><span class="mc-val" style="color:#94a3b8" id="mc-brvm-inv">—</span></div>
+      <div class="mc-row"><span class="mc-key">Valeur</span><span class="mc-val" style="color:#4A9EFF" id="mc-brvm-cur">—</span></div>
+      <div class="mc-gain">
+        <span class="mc-gain-val" id="mc-brvm-g">—</span>
+        <span class="mc-gain-pct" id="mc-brvm-p">—</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="progress-box">
+    <div class="progress-top">
+      <div>
+        <div class="progress-title">🎯 OBJECTIF : <span id="obj-lbl">250 000 FCFA</span></div>
+        <div class="phase-lbl" id="phase-lbl">Phase 1 — Construction</div>
+      </div>
+      <div class="progress-right">
+        <span class="prog-pct" id="prog-pct">0%</span>
+        <button class="edit-obj-btn" onclick="openEditObj()">✏️ Modifier</button>
+      </div>
+    </div>
+    <div class="congrats" id="congrats">🎉 Félicitations ! Objectif atteint ! Passe au palier suivant !</div>
+    <div class="pbar"><div class="pfill" id="pfill" style="width:0%"></div></div>
+    <div class="pfooter">
+      <span id="pcur">Total: 0 FCFA</span>
+      <span id="prem">Manque: 0 FCFA</span>
+    </div>
+    <div class="chips" id="chips"></div>
+  </div>
+
+  <div class="desktop-grid">
+    <div class="col-left">
+      <div class="sbox">
+        <div class="shdr">
+          <span>MES FONDS NSIA INVEST</span>
+          <button class="abtn" onclick="openAddFund()">+ Nouveau fonds</button>
+        </div>
+        <div id="funds-list"></div>
+      </div>
+    </div>
+    <div class="col-right">
+      <div class="brvm-box">
+        <div class="brvm-hdr">
+          <span>📈 MES ACTIONS BRVM</span>
+          <button class="abtn" style="border-color:rgba(74,158,255,.3);background:rgba(74,158,255,.08);color:#4A9EFF" onclick="openAddAction()">+ Nouvelle action</button>
+        </div>
+        <div id="actions-list"></div>
+      </div>
+
+      <!-- HISTORIQUE MODIFIABLE -->
+      <div class="sbox">
+        <div class="shdr">
+          <span>📅 HISTORIQUE VERSEMENTS</span>
+          <button class="abtn" onclick="openAddVers()">+ Ajouter</button>
+        </div>
+        <div id="history-list"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="tip-box">
+    <div class="tip-title">💡 MODE D'EMPLOI</div>
+    <div class="tip-text">
+      • <strong>✏️ Modifier</strong> → Change nom, valeurs, couleur ou type d'un fonds/action<br>
+      • <strong>🗑 Supprimer</strong> → Supprime un fonds, une action ou un versement<br>
+      • <strong>Appuie sur VALEUR / INVESTI</strong> → Modification rapide des montants<br>
+      • <strong>Appuie sur COURS (BRVM)</strong> → Met à jour le prix de l'action<br>
+      • <strong>✏️ Objectif</strong> → Change le palier quand tu l'atteins<br>
+      • <strong>Sauvegarde auto</strong> → Tes données restent sur cet appareil
+    </div>
+  </div>
+  <div class="footer">NSIA INVEST DASHBOARD · OUATTARA MAMADOU · P62538 · ABOBO PK18</div>
+</div>
+
+<div class="mo" id="modal">
+  <div class="md">
+    <h3 id="m-title">—</h3>
+    <div id="m-body"></div>
+    <div class="mbtns" id="m-btns"></div>
+  </div>
+</div>
+
+<script>
+const PAL=['#00D4AA','#4A9EFF','#7B61FF','#FFB547','#FF6B6B','#26de81','#fd9644','#a55eea','#fc5c65','#45aaf2'];
+const PALIERS=[
+  {val:250000,  label:"250 000",    phase:"Phase 1 — Construction"},
+  {val:500000,  label:"500 000",    phase:"Phase 2 — Croissance"},
+  {val:750000,  label:"750 000",    phase:"Phase 3 — Accélération"},
+  {val:1000000, label:"1 000 000", phase:"Phase 4 — Million FCFA 🏆"},
+  {val:2000000, label:"2 000 000", phase:"Phase 5 — Grand investisseur"},
+  {val:5000000, label:"5 000 000", phase:"Phase 6 — Liberté financière 🚀"},
+];
+let selColor=PAL[0];
+
+let funds=JSON.parse(localStorage.getItem('nsia_f9')||'null')||[
+  {id:1,name:"AURORE MONÉTARIS",        invested:28000,current:28258,color:"#00D4AA",active:true},
+  {id:2,name:"AURORE SÉCURITÉ II",      invested:21000,current:21239,color:"#4A9EFF",active:true},
+  {id:3,name:"OBLIGATIONS SOUVERAINES", invested:21000,current:21217,color:"#7B61FF",active:true},
+  {id:4,name:"FONDS DIVERSIFIÉ",        invested:10900,current:10935,color:"#FFB547",active:false},
+  {id:5,name:"AURORE OPPORTUNITÉS",     invested:5200, current:5277, color:"#FF6B6B",active:false},
+];
+let actions=JSON.parse(localStorage.getItem('nsia_a9')||'null')||[
+  {id:1,name:"VIVO ENERGY CI",ticker:"VIVO",parts:4,prixAchat:2240,prixActuel:2240,sgi:"Daba Finance",color:"#FF6B6B",date:"07/03/2026"},
+];
+let versements=JSON.parse(localStorage.getItem('nsia_v9')||'null')||[
+  {id:1,date:"07/03/2026",amount:35000,total:86100,note:"Premier versement"}
+];
+let objective=parseInt(localStorage.getItem('nsia_o9')||'250000');
+let nextFId=funds.reduce((m,f)=>Math.max(m,f.id),0)+1;
+let nextAId=actions.reduce((m,a)=>Math.max(m,a.id),0)+1;
+let nextVId=versements.reduce((m,v)=>Math.max(m,v.id||0),0)+1;
+let view='all';
+
+function save(){
+  localStorage.setItem('nsia_f9',JSON.stringify(funds));
+  localStorage.setItem('nsia_a9',JSON.stringify(actions));
+  localStorage.setItem('nsia_v9',JSON.stringify(versements));
+  localStorage.setItem('nsia_o9',objective);
+}
+function fmt(n){return Math.round(n).toLocaleString('fr-FR');}
+function today(){return new Date().toLocaleDateString('fr-FR');}
+function setView(v){view=v;document.getElementById('btn-all').classList.toggle('active',v==='all');document.getElementById('btn-main').classList.toggle('active',v==='main');render();}
+
+function render(){
+  const list=view==='main'?funds.filter(f=>f.active):funds;
+  const nInv=list.reduce((s,f)=>s+f.invested,0);
+  const nCur=list.reduce((s,f)=>s+f.current,0);
+  const nG=nCur-nInv; const nGP=nInv>0?(nG/nInv)*100:0;
+  const bInv=actions.reduce((s,a)=>s+(a.parts*a.prixAchat),0);
+  const bCur=actions.reduce((s,a)=>s+(a.parts*a.prixActuel),0);
+  const bG=bCur-bInv; const bGP=bInv>0?(bG/bInv)*100:0;
+  const gInv=nInv+bInv; const gCur=nCur+bCur;
+  const gG=gCur-gInv; const gGP=gInv>0?(gG/gInv)*100:0;
+  const pos=gG>=0;
+
+  document.getElementById('s-invested').textContent=fmt(gInv)+' FCFA';
+  document.getElementById('s-current').textContent=fmt(gCur)+' FCFA';
+  document.getElementById('s-patrimoine').textContent=fmt(gCur)+' FCFA';
+  document.getElementById('gain-banner').className='gain-banner '+(pos?'pos':'neg');
+  document.getElementById('gb-diff').textContent=(pos?'+':'')+fmt(gG)+' FCFA';
+  document.getElementById('gb-diff').style.color=pos?'#00D4AA':'#FF6B6B';
+  document.getElementById('gb-pct').textContent=(pos?'+':'')+gGP.toFixed(2)+'%';
+  document.getElementById('gb-pct').style.color=pos?'#00D4AA':'#FF6B6B';
+  document.getElementById('mc-nsia-inv').textContent=fmt(nInv)+' FCFA';
+  document.getElementById('mc-nsia-cur').textContent=fmt(nCur)+' FCFA';
+  const np=nG>=0;
+  document.getElementById('mc-nsia-g').textContent=(np?'+':'')+fmt(nG)+' FCFA';
+  document.getElementById('mc-nsia-g').style.color=np?'#00D4AA':'#FF6B6B';
+  document.getElementById('mc-nsia-p').textContent=(np?'+':'')+nGP.toFixed(2)+'%';
+  document.getElementById('mc-nsia-p').style.color=np?'#00D4AA':'#FF6B6B';
+  document.getElementById('mc-brvm-inv').textContent=fmt(bInv)+' FCFA';
+  document.getElementById('mc-brvm-cur').textContent=fmt(bCur)+' FCFA';
+  const bp=bG>=0;
+  document.getElementById('mc-brvm-g').textContent=(bp?'+':'')+fmt(bG)+' FCFA';
+  document.getElementById('mc-brvm-g').style.color=bp?'#00D4AA':'#FF6B6B';
+  document.getElementById('mc-brvm-p').textContent=(bp?'+':'')+bGP.toFixed(2)+'%';
+  document.getElementById('mc-brvm-p').style.color=bp?'#00D4AA':'#FF6B6B';
+
+  const prog=Math.min((gCur/objective)*100,100);
+  const reached=gCur>=objective;
+  const ph=PALIERS.find(x=>x.val===objective);
+  document.getElementById('obj-lbl').textContent=fmt(objective)+' FCFA';
+  document.getElementById('phase-lbl').textContent=ph?ph.phase:'Objectif personnalisé';
+  document.getElementById('prog-pct').textContent=prog.toFixed(1)+'%';
+  document.getElementById('pfill').style.width=prog+'%';
+  document.getElementById('pcur').textContent='Total: '+fmt(gCur)+' FCFA';
+  document.getElementById('prem').textContent=reached?'✅ Objectif atteint !':'Manque: '+fmt(objective-gCur)+' FCFA';
+  document.getElementById('congrats').style.display=reached?'block':'none';
+  document.getElementById('chips').innerHTML=PALIERS.map(x=>
+    `<div class="chip ${x.val===objective?'cur':''}" onclick="setObj(${x.val})">${x.label}</div>`
+  ).join('');
+
+  // ─ FONDS ─
+  document.getElementById('funds-list').innerHTML=list.map(f=>{
+    const fg=f.current-f.invested;
+    const gp=f.invested>0?(fg/f.invested)*100:0;
+    const ap=nCur>0?(f.current/nCur)*100:0;
+    const fpos=fg>=0;
+    return `<div class="frow">
+      <div class="fnrow">
+        <div class="fdot" style="background:${f.color};box-shadow:0 0 5px ${f.color}88"></div>
+        <span class="ftitle">${f.name}</span>
+        ${!f.active&&f.id<=5?'<span class="badge bp2">PHASE 2</span>':''}
+        ${f.id>5?'<span class="badge bnew">NOUVEAU</span>':''}
+        <div class="row-actions">
+          <button class="btn-edit-row" onclick="openEditFundFull(${f.id})">✏️ Modifier</button>
+          <button class="btn-del-row" onclick="askDelFund(${f.id})">🗑</button>
+        </div>
+      </div>
+      <div class="fvals">
+        <div class="fcol"><div class="fclbl">INVESTI</div>
+          <div class="fcval" style="color:#94a3b8" onclick="editFundVal('inv',${f.id},${f.invested})">${fmt(f.invested)}</div></div>
+        <div class="fcol"><div class="fclbl">VALEUR</div>
+          <div class="fcval" style="color:${f.color}" onclick="editFundVal('cur',${f.id},${f.current})">${fmt(f.current)}</div></div>
+        <div class="fcol"><div class="fclbl">GAIN NET</div>
+          <div class="fcval no-edit" style="color:${fpos?'#00D4AA':'#FF6B6B'}">${fpos?'+':''}${fmt(fg)}</div></div>
+        <div class="fcol"><div class="fclbl">GAIN %</div>
+          <div class="fcval no-edit" style="color:${fpos?'#00D4AA':'#FF6B6B'}">${fpos?'+':''}${gp.toFixed(2)}%</div></div>
+        <div class="fcol"><div class="fclbl">ALLOC %</div>
+          <div class="fcval no-edit" style="color:#4A9EFF">${ap.toFixed(1)}%</div></div>
+      </div>
+      <div class="alloc-bar-wrap">
+        <div class="alloc-bar-lbl"><span>Part dans NSIA</span><span>${ap.toFixed(1)}%</span></div>
+        <div class="alloc-track"><div class="alloc-fill" style="width:${ap}%;background:${f.color}99"></div></div>
+      </div>
+    </div>`;
+  }).join('')||'<div style="padding:16px;text-align:center;font-size:12px;color:#6b7a99">Aucun fonds</div>';
+
+  // ─ ACTIONS ─
+  if(actions.length===0){
+    document.getElementById('actions-list').innerHTML=`<div class="empty-brvm">Aucune action BRVM.<br>Appuie sur "+ Nouvelle action" pour commencer.</div>`;
+  } else {
+    document.getElementById('actions-list').innerHTML=actions.map(a=>{
+      const inv=a.parts*a.prixAchat; const val=a.parts*a.prixActuel;
+      const ag=val-inv; const gp=inv>0?(ag/inv)*100:0;
+      const ap=bCur>0?(val/bCur)*100:0; const apos=ag>=0;
+      return `<div class="arow">
+        <div class="anrow">
+          <div class="adot" style="background:${a.color};box-shadow:0 0 5px ${a.color}88"></div>
+          <span class="atitle">${a.name}</span>
+          <span class="asgi">${a.sgi}</span>
+          <div class="row-actions">
+            <button class="btn-edit-row" style="border-color:rgba(74,158,255,.3);background:rgba(74,158,255,.07);color:#4A9EFF" onclick="openEditActionFull(${a.id})">✏️</button>
+            <button class="btn-del-row" onclick="askDelAction(${a.id})">🗑</button>
+          </div>
+        </div>
+        <div style="font-size:clamp(8px,.9vw,10px);color:#6b7a99;margin-bottom:6px">${a.parts} parts · Achat: ${fmt(a.prixAchat)} FCFA/part · ${a.date}</div>
+        <div class="avals">
+          <div class="acol"><div class="aclbl">INVESTI</div>
+            <div class="acval no-edit" style="color:#94a3b8">${fmt(inv)}</div></div>
+          <div class="acol"><div class="aclbl">COURS</div>
+            <div class="acval" style="color:${a.color}" onclick="editActionCours(${a.id},${a.prixActuel})">${fmt(a.prixActuel)}</div></div>
+          <div class="acol"><div class="aclbl">GAIN %</div>
+            <div class="acval no-edit" style="color:${apos?'#00D4AA':'#FF6B6B'}">${apos?'+':''}${gp.toFixed(2)}%</div></div>
+          <div class="acol"><div class="aclbl">ALLOC %</div>
+            <div class="acval no-edit" style="color:#4A9EFF">${ap.toFixed(1)}%</div></div>
+        </div>
+        <div class="alloc-bar-wrap" style="margin-top:8px">
+          <div class="alloc-bar-lbl"><span>Part dans BRVM</span><span>${ap.toFixed(1)}%</span></div>
+          <div class="alloc-track"><div class="alloc-fill" style="width:${ap}%;background:${a.color}99"></div></div>
+        </div>
+      </div>`;
+    }).join('');
+  }
+
+  // ─ HISTORIQUE MODIFIABLE ─
+  document.getElementById('history-list').innerHTML=versements.slice().reverse().map(v=>
+    `<div class="hrow">
+      <div class="hrow-left">
+        <div class="hdate">${v.date}${v.note?' · <span style="color:#6b7a99;font-style:italic">'+v.note+'</span>':''}</div>
+        <div class="hamnt">+${fmt(v.amount)} FCFA versés</div>
+        <div class="htot">Cumul: ${fmt(v.total)} FCFA</div>
+      </div>
+      <div class="hrow-actions">
+        <button class="btn-edit-row" onclick="openEditVers(${v.id})">✏️</button>
+        <button class="btn-del-row" onclick="askDelVers(${v.id})">🗑</button>
+      </div>
+    </div>`
+  ).join('')||'<div style="padding:14px 18px;font-size:12px;color:#6b7a99">Aucun versement</div>';
+}
+
+// ══ OBJECTIF ══
+function setObj(v){objective=v;save();render();setTimeout(()=>{const gc=funds.reduce((s,f)=>s+f.current,0)+actions.reduce((s,a)=>s+a.parts*a.prixActuel,0);document.getElementById('pfill').style.width=Math.min((gc/objective)*100,100)+'%';},50);}
+function openEditObj(){
+  setModal('🎯 Modifier ton objectif',
+    `<label>PALIERS PRÉDÉFINIS</label>
+     <div class="preset-grid">${PALIERS.map(x=>`<button class="pbtn" onclick="setPreset(${x.val})">${x.label} FCFA</button>`).join('')}</div>
+     <label>OU OBJECTIF PERSONNALISÉ (FCFA)</label>
+     <input type="number" id="oi" value="${objective}">`,
+    `<button class="bno" onclick="closeM()">Annuler</button><button class="bok" onclick="doObj()">✓ Valider</button>`
+  );
+  setTimeout(()=>document.getElementById('oi').focus(),100);
+}
+function setPreset(v){document.getElementById('oi').value=v;}
+function doObj(){const v=parseInt(document.getElementById('oi').value);if(!isNaN(v)&&v>0)setObj(v);closeM();}
+
+// ══ FONDS ══
+function editFundVal(type,id,val){
+  const f=funds.find(x=>x.id===id);
+  setModal(type==='cur'?'📊 Valeur actuelle — '+f.name:'💰 Montant investi — '+f.name,
+    `<label>${type==='cur'?'VALORISATION (relevé NSIA)':'MONTANT INVESTI (FCFA)'}</label><input type="number" id="ev" value="${val}">`,
+    `<button class="bno" onclick="closeM()">Annuler</button><button class="bok" onclick="doEditFundVal('${type}',${id})">✓ Confirmer</button>`
+  );
+  setTimeout(()=>document.getElementById('ev').focus(),100);
+}
+function doEditFundVal(type,id){
+  const v=parseFloat(document.getElementById('ev').value);
+  if(isNaN(v)||v<0)return;
+  funds=funds.map(f=>f.id===id?{...f,[type==='cur'?'current':'invested']:v}:f);
+  if(type==='cur')document.getElementById('last-update').textContent=today();
+  save();closeM();render();
+}
+function openEditFundFull(id){
+  const f=funds.find(x=>x.id===id); selColor=f.color;
+  setModal('✏️ Modifier — '+f.name,
+    `<div class="modal-section-title">INFORMATIONS</div>
+     <label>NOM DU FONDS</label><input type="text" id="ef-name" value="${f.name}">
+     <label>TYPE</label>
+     <select id="ef-type">
+       <option value="true" ${f.active?'selected':''}>Fonds principal</option>
+       <option value="false" ${!f.active?'selected':''}>Fonds secondaire (Phase 2+)</option>
+     </select>
+     <label>COULEUR</label>
+     <div class="crow" id="ef-cp">${PAL.map(c=>`<div class="cdot ${c===selColor?'sel':''}" style="background:${c}" onclick="pickCEF('${c}')"></div>`).join('')}</div>
+     <div class="modal-sep"></div>
+     <div class="modal-section-title">MONTANTS</div>
+     <label>MONTANT INVESTI (FCFA)</label><input type="number" id="ef-inv" value="${f.invested}">
+     <label>VALEUR ACTUELLE (FCFA)</label><input type="number" id="ef-cur" value="${f.current}">`,
+    `<button class="bno" onclick="closeM()">Annuler</button><button class="bok" onclick="doEditFundFull(${id})">✓ Enregistrer</button>`
+  );
+  setTimeout(()=>document.getElementById('ef-name').focus(),100);
+}
+function pickCEF(c){selColor=c;document.querySelectorAll('#ef-cp .cdot').forEach(d=>d.classList.toggle('sel',d.style.background===c||d.style.backgroundColor===c));}
+function doEditFundFull(id){
+  const name=document.getElementById('ef-name').value.trim();
+  const active=document.getElementById('ef-type').value==='true';
+  const inv=parseFloat(document.getElementById('ef-inv').value);
+  const cur=parseFloat(document.getElementById('ef-cur').value);
+  if(!name||isNaN(inv)||isNaN(cur)){alert('Remplis tous les champs');return;}
+  funds=funds.map(f=>f.id===id?{...f,name,active,invested:inv,current:cur,color:selColor}:f);
+  document.getElementById('last-update').textContent=today();
+  save();closeM();render();
+}
+function openAddFund(){
+  selColor=PAL[Math.floor(Math.random()*PAL.length)];
+  setModal('➕ Ajouter un fonds NSIA',
+    `<label>NOM DU FONDS</label><input type="text" id="fn" placeholder="Ex: FCP TAWFIR HALAL">
+     <label>MONTANT INVESTI (FCFA)</label><input type="number" id="fi" placeholder="10000">
+     <label>VALEUR ACTUELLE (FCFA)</label><input type="number" id="fc" placeholder="10000">
+     <label>TYPE</label>
+     <select id="fa"><option value="true">Fonds principal</option><option value="false" selected>Fonds secondaire</option></select>
+     <label>COULEUR</label>
+     <div class="crow" id="cp">${PAL.map(c=>`<div class="cdot ${c===selColor?'sel':''}" style="background:${c}" onclick="pickC('${c}')"></div>`).join('')}</div>`,
+    `<button class="bno" onclick="closeM()">Annuler</button><button class="bok" onclick="doAddFund()">✓ Ajouter</button>`
+  );
+  setTimeout(()=>document.getElementById('fn').focus(),100);
+}
+function doAddFund(){
+  const name=document.getElementById('fn').value.trim();
+  const inv=parseFloat(document.getElementById('fi').value);
+  const cur=parseFloat(document.getElementById('fc').value);
+  const active=document.getElementById('fa').value==='true';
+  if(!name||isNaN(inv)||isNaN(cur)){alert('Remplis tous les champs');return;}
+  funds.push({id:nextFId++,name,invested:inv,current:cur,color:selColor,active});
+  document.getElementById('last-update').textContent=today();
+  save();closeM();render();
+}
+function askDelFund(id){
+  const f=funds.find(x=>x.id===id);
+  setModal('🗑 Supprimer ce fonds',
+    `<div class="warn"><b>${f.name}</b><br><span style="font-size:11px">Investi: ${fmt(f.invested)} · Valeur: ${fmt(f.current)} FCFA</span><br><br>⚠️ Suppression définitive et irréversible.</div>`,
+    `<button class="bno" onclick="closeM()">Annuler</button><button class="bdel" onclick="doDelFund(${id})">🗑 Supprimer</button>`
+  );
+}
+function doDelFund(id){funds=funds.filter(f=>f.id!==id);save();closeM();render();}
+
+// ══ ACTIONS ══
+function editActionCours(id,val){
+  const a=actions.find(x=>x.id===id);
+  setModal('📊 Cours actuel — '+a.name,
+    `<div style="font-size:11px;color:#6b7a99;margin-bottom:12px">${a.parts} parts · Prix d'achat: ${fmt(a.prixAchat)} FCFA/part</div>
+     <label>COURS ACTUEL (FCFA par part)</label><input type="number" id="av" value="${val}">`,
+    `<button class="bno" onclick="closeM()">Annuler</button><button class="bok" style="background:#4A9EFF;color:#0a0f1e" onclick="doEditActionCours(${id})">✓ Confirmer</button>`
+  );
+  setTimeout(()=>document.getElementById('av').focus(),100);
+}
+function doEditActionCours(id){
+  const v=parseFloat(document.getElementById('av').value);
+  if(isNaN(v)||v<0)return;
+  actions=actions.map(a=>a.id===id?{...a,prixActuel:v}:a);
+  document.getElementById('last-update').textContent=today();
+  save();closeM();render();
+}
+function openEditActionFull(id){
+  const a=actions.find(x=>x.id===id); selColor=a.color;
+  setModal('✏️ Modifier — '+a.name,
+    `<div class="modal-section-title">INFORMATIONS</div>
+     <label>NOM</label><input type="text" id="ea-name" value="${a.name}">
+     <label>TICKER</label><input type="text" id="ea-ticker" value="${a.ticker||''}">
+     <label>SGI</label>
+     <select id="ea-sgi">
+       <option ${a.sgi==='Daba Finance'?'selected':''}>Daba Finance</option>
+       <option ${a.sgi==='NSIA Capital'?'selected':''}>NSIA Capital</option>
+       <option ${a.sgi==='BOA Capital'?'selected':''}>BOA Capital</option>
+       <option ${a.sgi==='EDC Investment'?'selected':''}>EDC Investment</option>
+       <option ${a.sgi==='BNI Finance'?'selected':''}>BNI Finance</option>
+       <option ${a.sgi==='Autre SGI'?'selected':''}>Autre SGI</option>
+     </select>
+     <label>DATE</label><input type="text" id="ea-date" value="${a.date}">
+     <label>COULEUR</label>
+     <div class="crow" id="ea-cp">${PAL.map(c=>`<div class="cdot ${c===selColor?'sel':''}" style="background:${c}" onclick="pickCEA('${c}')"></div>`).join('')}</div>
+     <div class="modal-sep"></div>
+     <div class="modal-section-title">MONTANTS</div>
+     <label>NOMBRE DE PARTS</label><input type="number" id="ea-parts" value="${a.parts}" step="0.001">
+     <label>PRIX D'ACHAT PAR PART (FCFA)</label><input type="number" id="ea-achat" value="${a.prixAchat}">
+     <label>COURS ACTUEL PAR PART (FCFA)</label><input type="number" id="ea-actuel" value="${a.prixActuel}">`,
+    `<button class="bno" onclick="closeM()">Annuler</button><button class="bok" style="background:#4A9EFF;color:#0a0f1e" onclick="doEditActionFull(${id})">✓ Enregistrer</button>`
+  );
+  setTimeout(()=>document.getElementById('ea-name').focus(),100);
+}
+function pickCEA(c){selColor=c;document.querySelectorAll('#ea-cp .cdot').forEach(d=>d.classList.toggle('sel',d.style.background===c||d.style.backgroundColor===c));}
+function doEditActionFull(id){
+  const name=document.getElementById('ea-name').value.trim();
+  const ticker=document.getElementById('ea-ticker').value.trim().toUpperCase();
+  const sgi=document.getElementById('ea-sgi').value;
+  const date=document.getElementById('ea-date').value;
+  const parts=parseFloat(document.getElementById('ea-parts').value);
+  const prixAchat=parseFloat(document.getElementById('ea-achat').value);
+  const prixActuel=parseFloat(document.getElementById('ea-actuel').value);
+  if(!name||isNaN(parts)||isNaN(prixAchat)||isNaN(prixActuel)){alert('Remplis tous les champs');return;}
+  actions=actions.map(a=>a.id===id?{...a,name,ticker,sgi,date,parts,prixAchat,prixActuel,color:selColor}:a);
+  document.getElementById('last-update').textContent=today();
+  save();closeM();render();
+}
+function openAddAction(){
+  selColor=PAL[Math.floor(Math.random()*PAL.length)];
+  setModal('📈 Ajouter une action BRVM',
+    `<label>NOM</label><input type="text" id="an" placeholder="Ex: SONATEL">
+     <label>TICKER</label><input type="text" id="at" placeholder="Ex: SNTS">
+     <label>NOMBRE DE PARTS</label><input type="number" id="apa" placeholder="Ex: 4" step="0.001">
+     <label>PRIX D'ACHAT PAR PART (FCFA)</label><input type="number" id="apx" placeholder="Ex: 2240">
+     <label>COURS ACTUEL PAR PART (FCFA)</label><input type="number" id="acu" placeholder="Ex: 2240">
+     <label>SGI</label>
+     <select id="asgi">
+       <option>Daba Finance</option><option>NSIA Capital</option><option>BOA Capital</option>
+       <option>EDC Investment</option><option>BNI Finance</option><option>Autre SGI</option>
+     </select>
+     <label>DATE D'ACHAT</label><input type="text" id="adt" value="${today()}">
+     <label>COULEUR</label>
+     <div class="crow" id="cp2">${PAL.map(c=>`<div class="cdot ${c===selColor?'sel':''}" style="background:${c}" onclick="pickC2('${c}')"></div>`).join('')}</div>`,
+    `<button class="bno" onclick="closeM()">Annuler</button><button class="bok" style="background:#4A9EFF;color:#0a0f1e" onclick="doAddAction()">✓ Ajouter</button>`
+  );
+  setTimeout(()=>document.getElementById('an').focus(),100);
+}
+function doAddAction(){
+  const name=document.getElementById('an').value.trim();
+  const ticker=document.getElementById('at').value.trim().toUpperCase();
+  const parts=parseFloat(document.getElementById('apa').value);
+  const prixAchat=parseFloat(document.getElementById('apx').value);
+  const prixActuel=parseFloat(document.getElementById('acu').value);
+  const sgi=document.getElementById('asgi').value;
+  const date=document.getElementById('adt').value||today();
+  if(!name||isNaN(parts)||isNaN(prixAchat)||isNaN(prixActuel)){alert('Remplis tous les champs');return;}
+  actions.push({id:nextAId++,name,ticker,parts,prixAchat,prixActuel,sgi,date,color:selColor});
+  document.getElementById('last-update').textContent=today();
+  save();closeM();render();
+}
+function askDelAction(id){
+  const a=actions.find(x=>x.id===id);
+  setModal('🗑 Supprimer cette action',
+    `<div class="warn"><b>${a.name}</b><br><span style="font-size:11px">${a.parts} parts · Investi: ${fmt(a.parts*a.prixAchat)} · Valeur: ${fmt(a.parts*a.prixActuel)} FCFA</span><br><br>⚠️ Suppression définitive.</div>`,
+    `<button class="bno" onclick="closeM()">Annuler</button><button class="bdel" onclick="doDelAction(${id})">🗑 Supprimer</button>`
+  );
+}
+function doDelAction(id){actions=actions.filter(a=>a.id!==id);save();closeM();render();}
+
+// ══ VERSEMENTS — AJOUTER ══
+function openAddVers(){
+  setModal('📅 Ajouter un versement',
+    `<label>MONTANT (FCFA)</label><input type="number" id="va" value="35000">
+     <label>DATE</label><input type="text" id="vd" value="${today()}">
+     <label>NOTE (optionnel)</label><input type="text" id="vn" placeholder="Ex: Versement mars 2026">`,
+    `<button class="bno" onclick="closeM()">Annuler</button><button class="bok" onclick="doAddVers()">✓ Ajouter</button>`
+  );
+  setTimeout(()=>document.getElementById('va').focus(),100);
+}
+function doAddVers(){
+  const a=parseFloat(document.getElementById('va').value);
+  const d=document.getElementById('vd').value||today();
+  const n=document.getElementById('vn').value.trim();
+  if(isNaN(a)||a<=0)return;
+  const tot=funds.reduce((s,f)=>s+f.invested,0)+actions.reduce((s,a)=>s+a.parts*a.prixAchat,0);
+  versements.push({id:nextVId++,date:d,amount:a,total:tot+a,note:n});
+  save();closeM();render();
+}
+
+// ══ VERSEMENTS — MODIFIER ══
+function openEditVers(id){
+  const v=versements.find(x=>x.id===id);
+  setModal('✏️ Modifier ce versement',
+    `<label>MONTANT (FCFA)</label><input type="number" id="ev-amt" value="${v.amount}">
+     <label>DATE</label><input type="text" id="ev-date" value="${v.date}">
+     <label>CUMUL TOTAL (FCFA)</label><input type="number" id="ev-tot" value="${v.total}">
+     <label>NOTE (optionnel)</label><input type="text" id="ev-note" value="${v.note||''}">`,
+    `<button class="bno" onclick="closeM()">Annuler</button><button class="bok" onclick="doEditVers(${id})">✓ Enregistrer</button>`
+  );
+  setTimeout(()=>document.getElementById('ev-amt').focus(),100);
+}
+function doEditVers(id){
+  const amt=parseFloat(document.getElementById('ev-amt').value);
+  const date=document.getElementById('ev-date').value;
+  const tot=parseFloat(document.getElementById('ev-tot').value);
+  const note=document.getElementById('ev-note').value.trim();
+  if(isNaN(amt)||amt<=0||!date){alert('Remplis les champs obligatoires');return;}
+  versements=versements.map(v=>v.id===id?{...v,amount:amt,date,total:isNaN(tot)?v.total:tot,note}:v);
+  save();closeM();render();
+}
+
+// ══ VERSEMENTS — SUPPRIMER ══
+function askDelVers(id){
+  const v=versements.find(x=>x.id===id);
+  setModal('🗑 Supprimer ce versement',
+    `<div class="warn"><b>${v.date}</b><br><span style="font-size:11px">+${fmt(v.amount)} FCFA${v.note?' · '+v.note:''}</span><br><br>⚠️ Suppression définitive et irréversible.</div>`,
+    `<button class="bno" onclick="closeM()">Annuler</button><button class="bdel" onclick="doDelVers(${id})">🗑 Supprimer</button>`
+  );
+}
+function doDelVers(id){versements=versements.filter(v=>v.id!==id);save();closeM();render();}
+
+// ══ MODAL ══
+function openM(){document.getElementById('modal').classList.add('open');}
+function closeM(){document.getElementById('modal').classList.remove('open');}
+document.getElementById('modal').addEventListener('click',e=>{if(e.target.id==='modal')closeM();});
+function setModal(t,b,bt){
+  document.getElementById('m-title').textContent=t;
+  document.getElementById('m-body').innerHTML=b;
+  document.getElementById('m-btns').innerHTML=bt;
+  openM();
+}
+function pickC(c){selColor=c;document.querySelectorAll('#cp .cdot').forEach(d=>d.classList.toggle('sel',d.style.background===c||d.style.backgroundColor===c));}
+function pickC2(c){selColor=c;document.querySelectorAll('#cp2 .cdot').forEach(d=>d.classList.toggle('sel',d.style.background===c||d.style.backgroundColor===c));}
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeM();});
+
+window.onload=()=>{
+  render();
+  setTimeout(()=>{
+    const gc=funds.reduce((s,f)=>s+f.current,0)+actions.reduce((s,a)=>s+a.parts*a.prixActuel,0);
+    document.getElementById('pfill').style.width=Math.min((gc/objective)*100,100)+'%';
+  },200);
+};
+</script>
+</body>
+</html>

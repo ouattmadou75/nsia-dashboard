@@ -1,0 +1,834 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="NSIA Portefeuille">
+<meta name="theme-color" content="#0a1628">
+<title>NSIA Portefeuille</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<!-- Firebase -->
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+<style>
+:root {
+  --navy:#0a1628; --navy2:#112240; --navy3:#1a3a6b;
+  --gold:#c9a84c; --gold-lt:#f5edd3; --gold-mid:#e8c97a;
+  --grey:#c5cbd8; --grey2:#5a6476;
+  --green:#1a6b3c; --green-lt:#d4edda;
+  --blue:#2d5fa6;
+  --red:#8b1a1a; --red-lt:#fdecea;
+  --amber:#8b4513; --amber-lt:#fff3cd;
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+html,body{height:100%;overflow:hidden;}
+body{font-family:'DM Sans',sans-serif;background:var(--navy);color:#fff;display:flex;flex-direction:column;}
+
+.header{background:linear-gradient(135deg,var(--navy),var(--navy2));border-bottom:3px solid var(--gold);padding:12px 16px 10px;flex-shrink:0;}
+.header h1{font-family:'Playfair Display',serif;font-size:1.15rem;font-weight:900;background:linear-gradient(90deg,#fff,var(--gold));-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
+.header-sub{color:var(--gold);font-size:.62rem;letter-spacing:.1em;margin-top:2px;text-transform:uppercase;}
+.header-row{display:flex;align-items:center;justify-content:space-between;gap:8px;}
+.badge{background:var(--gold);color:var(--navy);font-size:.6rem;font-weight:700;padding:3px 8px;border-radius:20px;white-space:nowrap;}
+
+/* YEAR NAV */
+.year-nav{background:var(--navy2);border-bottom:1px solid var(--navy3);padding:6px 12px;display:flex;align-items:center;gap:8px;flex-shrink:0;overflow-x:auto;-webkit-overflow-scrolling:touch;}
+.year-nav-label{font-size:.65rem;color:var(--grey2);white-space:nowrap;flex-shrink:0;}
+.year-btn{padding:4px 10px;border-radius:15px;font-size:.7rem;font-weight:600;cursor:pointer;border:1px solid var(--navy3);background:transparent;color:var(--grey);white-space:nowrap;flex-shrink:0;transition:all .2s;}
+.year-btn:hover{border-color:var(--gold);color:var(--gold);}
+.year-btn.active{background:var(--gold);color:var(--navy);border-color:var(--gold);}
+.year-arr{padding:4px 8px;border-radius:8px;font-size:.9rem;cursor:pointer;border:1px solid var(--navy3);background:transparent;color:var(--grey);flex-shrink:0;}
+.year-arr:hover{border-color:var(--gold);color:var(--gold);}
+#year-display{font-family:'Playfair Display',serif;font-size:.95rem;font-weight:700;color:var(--gold);white-space:nowrap;flex-shrink:0;min-width:45px;text-align:center;}
+
+/* SAVE BAR */
+.save-bar{background:var(--navy2);border-bottom:1px solid var(--navy3);padding:6px 12px;display:flex;align-items:center;gap:8px;flex-shrink:0;flex-wrap:wrap;}
+.btn{padding:6px 12px;border-radius:8px;font-size:.72rem;font-weight:600;cursor:pointer;border:none;transition:all .2s;min-height:34px;}
+.btn-gold{background:var(--gold);color:var(--navy);}
+.btn-gold:hover{background:var(--gold-mid);}
+.btn-out{background:transparent;border:1px solid var(--grey2);color:var(--grey);}
+.btn-out:hover{border-color:var(--gold);color:var(--gold);}
+.btn-red{background:transparent;border:1px solid var(--red);color:#f87171;}
+#save-info{font-size:.62rem;color:var(--grey2);margin-left:auto;}
+#sync-status{font-size:.62rem;padding:3px 8px;border-radius:10px;background:rgba(201,168,76,.15);color:var(--gold);border:1px solid rgba(201,168,76,.3);}
+
+/* LOGIN OVERLAY */
+.login-overlay{position:fixed;top:0;left:0;width:100%;height:100%;background:var(--navy);z-index:100;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;}
+.login-box{background:var(--navy2);border:1px solid var(--navy3);border-top:4px solid var(--gold);border-radius:12px;padding:24px;width:100%;max-width:340px;}
+.login-title{font-family:'Playfair Display',serif;font-size:1.3rem;color:var(--gold);margin-bottom:6px;text-align:center;}
+.login-sub{font-size:.75rem;color:var(--grey2);text-align:center;margin-bottom:20px;line-height:1.6;}
+.login-input{width:100%;background:rgba(45,95,166,.2);border:1px solid rgba(45,95,166,.5);border-radius:8px;color:#90c4ff;font-family:'DM Sans',sans-serif;font-size:.85rem;padding:10px 12px;outline:none;margin-bottom:10px;}
+.login-input:focus{border-color:var(--gold);background:rgba(201,168,76,.08);color:#fff;}
+.login-input::placeholder{color:rgba(144,196,255,.3);}
+.login-err{font-size:.72rem;color:#f87171;margin-bottom:8px;display:none;}
+.login-hint{font-size:.68rem;color:var(--grey2);text-align:center;margin-top:12px;line-height:1.6;}
+
+/* TABS */
+.tabs{display:flex;background:var(--navy2);border-top:2px solid var(--navy3);order:99;flex-shrink:0;}
+.tab{flex:1;padding:8px 4px 6px;font-size:.55rem;font-weight:600;letter-spacing:.03em;text-transform:uppercase;cursor:pointer;border:none;background:none;color:var(--grey2);border-top:3px solid transparent;white-space:nowrap;transition:all .2s;display:flex;flex-direction:column;align-items:center;gap:2px;min-height:48px;justify-content:center;}
+.tab-icon{font-size:1rem;line-height:1;}
+.tab:hover{color:var(--gold);}
+.tab.active{color:var(--gold);border-top-color:var(--gold);}
+
+.scroll-area{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;}
+.panel{display:none;padding:14px 14px 20px;}
+.panel.active{display:block;}
+
+/* KPI */
+.kpi-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:14px;}
+.kpi-card{background:var(--navy2);border:1px solid var(--navy3);border-top:3px solid var(--gold);border-radius:10px;padding:10px 12px;}
+.kpi-label{font-size:.6rem;color:var(--grey);text-transform:uppercase;letter-spacing:.06em;margin-bottom:3px;}
+.kpi-value{font-family:'Playfair Display',serif;font-size:1rem;font-weight:700;color:var(--gold);line-height:1.2;}
+.kpi-sub{font-size:.6rem;color:var(--grey2);margin-top:2px;}
+
+/* SECTION */
+.section-hdr{display:flex;align-items:center;gap:8px;background:var(--navy2);border-left:4px solid var(--gold);padding:7px 12px;border-radius:0 8px 8px 0;margin:16px 0 10px;}
+.section-hdr h2{font-size:.74rem;font-weight:600;letter-spacing:.05em;text-transform:uppercase;}
+.dot{width:6px;height:6px;border-radius:50%;background:var(--gold);flex-shrink:0;}
+
+.tip{background:rgba(201,168,76,.08);border:1px solid rgba(201,168,76,.3);border-radius:10px;padding:10px 14px;margin-bottom:12px;font-size:.73rem;color:var(--gold-mid);line-height:1.7;}
+.tip strong{color:var(--gold);}
+
+.legend{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:12px;padding:7px 12px;background:var(--navy2);border-radius:8px;border:1px solid var(--navy3);}
+.legend-item{display:flex;align-items:center;gap:6px;font-size:.66rem;color:var(--grey);}
+.ldot{width:10px;height:10px;border-radius:2px;flex-shrink:0;}
+
+/* TABLE */
+.table-wrap{overflow-x:auto;border-radius:10px;border:1px solid var(--navy3);-webkit-overflow-scrolling:touch;}
+table{width:100%;border-collapse:collapse;font-size:.76rem;}
+thead tr{background:var(--navy3);}
+thead th{padding:8px 8px;text-align:center;font-size:.6rem;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--gold);border-right:1px solid rgba(201,168,76,.1);white-space:nowrap;}
+thead th:first-child{text-align:left;position:sticky;left:0;background:var(--navy3);z-index:2;}
+tbody tr{border-bottom:1px solid var(--navy3);}
+tbody tr:nth-child(odd){background:rgba(255,255,255,.02);}
+tbody td{padding:6px 7px;color:#c5cbd8;border-right:1px solid rgba(255,255,255,.03);vertical-align:middle;}
+tbody td:first-child{font-weight:600;color:#fff;white-space:nowrap;position:sticky;left:0;background:var(--navy);z-index:1;}
+tbody tr:nth-child(odd) td:first-child{background:#0d1e35;}
+.bilan-row{border-top:2px solid rgba(201,168,76,.4)!important;border-bottom:2px solid rgba(201,168,76,.4)!important;background:rgba(201,168,76,.07)!important;}
+.bilan-row td:first-child{color:var(--gold)!important;background:rgba(201,168,76,.07)!important;}
+
+/* INPUTS */
+input[type=number],input[type=text],select{
+  background:rgba(45,95,166,.2);border:1px solid rgba(45,95,166,.5);
+  border-radius:8px;color:#90c4ff;font-family:'DM Sans',sans-serif;font-size:.8rem;
+  padding:7px 8px;width:100%;min-width:85px;outline:none;transition:border .15s;
+  -webkit-appearance:none;min-height:36px;
+}
+input:focus,select:focus{border-color:var(--gold);background:rgba(201,168,76,.08);color:#fff;}
+input::placeholder{color:rgba(144,196,255,.3);}
+select option{background:var(--navy2);color:#fff;}
+
+.comp{display:block;text-align:center;font-size:.73rem;}
+.pos{color:#4ade80;font-weight:600;}
+.neg{color:#f87171;font-weight:600;}
+.neu{color:var(--grey2);font-style:italic;}
+.cumul-val{color:#e2b96a;font-weight:600;font-size:.73rem;display:block;text-align:center;}
+
+.prio{display:inline-block;padding:2px 7px;border-radius:10px;font-size:.6rem;font-weight:700;}
+.ph{background:var(--red-lt);color:var(--red);}
+.pm{background:var(--amber-lt);color:var(--amber);}
+.pl{background:var(--green-lt);color:var(--green);}
+.chk-y{color:var(--green);font-weight:700;font-size:.95rem;}
+.chk-n{color:var(--grey2);}
+.act{font-size:.67rem;line-height:1.5;color:var(--gold-mid);max-width:170px;}
+
+/* PHASE CARDS */
+.phase-grid{display:grid;gap:10px;margin-bottom:16px;}
+.phase-card{background:var(--navy2);border:1px solid var(--navy3);border-radius:10px;padding:12px;}
+.phase-num{font-family:'Playfair Display',serif;font-size:1.3rem;font-weight:900;color:var(--gold);line-height:1;}
+.phase-title{font-size:.77rem;font-weight:600;text-transform:uppercase;letter-spacing:.05em;margin:4px 0 3px;}
+.phase-desc{font-size:.7rem;color:var(--grey2);line-height:1.6;}
+.phase-badge{display:inline-block;background:rgba(201,168,76,.15);border:1px solid rgba(201,168,76,.3);color:var(--gold);font-size:.63rem;font-weight:600;padding:2px 8px;border-radius:10px;margin-top:5px;}
+
+/* FONDS CARDS */
+.fonds-card{background:var(--navy2);border:1px solid var(--navy3);border-left:4px solid var(--gold);border-radius:10px;padding:11px 13px;margin-bottom:8px;}
+.fonds-name{font-family:'Playfair Display',serif;color:var(--gold);font-size:.85rem;font-weight:700;margin-bottom:4px;}
+.fonds-row{display:flex;justify-content:space-between;align-items:center;font-size:.72rem;color:var(--grey);margin-top:3px;}
+.fonds-taux{color:#4ade80;font-weight:700;font-size:.8rem;}
+.fonds-risque{font-size:.63rem;padding:2px 7px;border-radius:10px;}
+.r-low{background:var(--green-lt);color:var(--green);}
+.r-med{background:var(--amber-lt);color:var(--amber);}
+.r-high{background:var(--red-lt);color:var(--red);}
+
+/* GLOSSAIRE */
+.gloss-card{background:var(--navy2);border:1px solid var(--navy3);border-left:3px solid var(--gold);border-radius:10px;padding:11px 13px;margin-bottom:8px;}
+.gloss-term{font-family:'Playfair Display',serif;color:var(--gold);font-size:.85rem;font-weight:700;margin-bottom:5px;}
+.gloss-def{font-size:.72rem;color:var(--grey);line-height:1.6;margin-bottom:6px;}
+.gloss-tip{font-size:.68rem;color:var(--green);background:var(--green-lt);padding:5px 9px;border-radius:6px;line-height:1.5;}
+
+/* PROJECTION ANNUELLE */
+.proj-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:14px;}
+.proj-card{background:var(--navy2);border:1px solid var(--navy3);border-radius:10px;padding:10px 12px;text-align:center;}
+.proj-year{font-size:.62rem;color:var(--grey2);text-transform:uppercase;letter-spacing:.06em;}
+.proj-val{font-family:'Playfair Display',serif;font-size:1rem;font-weight:700;color:var(--gold-mid);}
+.proj-gain{font-size:.65rem;margin-top:2px;}
+
+/* LOADING */
+.loading{display:flex;align-items:center;justify-content:center;padding:20px;gap:8px;color:var(--grey2);font-size:.8rem;}
+.spinner{width:16px;height:16px;border:2px solid var(--navy3);border-top-color:var(--gold);border-radius:50%;animation:spin .8s linear infinite;flex-shrink:0;}
+@keyframes spin{to{transform:rotate(360deg);}}
+
+@media(min-width:600px){
+  .kpi-grid{grid-template-columns:repeat(3,1fr);}
+  .tabs{order:0;border-top:none;border-bottom:2px solid var(--navy3);}
+  .tab{flex-direction:row;gap:6px;padding:10px 14px;border-top:none;border-bottom:3px solid transparent;min-height:auto;}
+  .tab.active{border-bottom-color:var(--gold);border-top-color:transparent;}
+}
+</style>
+</head>
+<body>
+
+<!-- LOGIN OVERLAY -->
+<div class="login-overlay" id="login-overlay">
+  <div class="login-box">
+    <div class="login-title">🏦 NSIA Portefeuille</div>
+    <div class="login-sub">Connectez-vous pour accéder à vos données synchronisées sur tous vos appareils.</div>
+    <input class="login-input" type="text" id="login-user" placeholder="Votre identifiant (ex: ouattara)">
+    <input class="login-input" type="password" id="login-pass" placeholder="Votre mot de passe">
+    <div class="login-err" id="login-err">Identifiant ou mot de passe incorrect.</div>
+    <button class="btn btn-gold" style="width:100%;margin-top:4px" onclick="doLogin()">Se connecter</button>
+    <div class="login-hint">Vos données sont chiffrées et synchronisées entre votre téléphone et votre ordinateur.</div>
+  </div>
+</div>
+
+<div class="header">
+  <div class="header-row">
+    <div>
+      <h1>Suivi de Portefeuille · NSIA &amp; BRVM</h1>
+      <div class="header-sub" id="header-sub">Exercice <span id="header-year">2025</span> &nbsp;·&nbsp; Mars → Décembre</div>
+    </div>
+    <span class="badge" id="header-badge">10 Mois</span>
+  </div>
+</div>
+
+<!-- YEAR NAVIGATION -->
+<div class="year-nav">
+  <span class="year-nav-label">Année :</span>
+  <button class="year-arr" onclick="changeYear(-1)">◀</button>
+  <span id="year-display">2025</span>
+  <button class="year-arr" onclick="changeYear(+1)">▶</button>
+  <div id="year-quick-btns" style="display:flex;gap:5px;"></div>
+</div>
+
+<div class="save-bar">
+  <button class="btn btn-gold" onclick="saveData()">💾 Enregistrer</button>
+  <button class="btn btn-out" onclick="resetYear()">🔄 Année</button>
+  <span id="sync-status">⚡ Connecté</span>
+  <span id="save-info">Sync automatique activée</span>
+</div>
+
+<div class="scroll-area">
+
+<!-- ACCUEIL -->
+<div id="accueil" class="panel active">
+  <div class="kpi-grid">
+    <div class="kpi-card"><div class="kpi-label">Capital Cumulé</div><div class="kpi-value" id="kpi-capital">— FCFA</div><div class="kpi-sub">Tous versements</div></div>
+    <div class="kpi-card"><div class="kpi-label">Valeur NSIA</div><div class="kpi-value" id="kpi-nsia-val">— FCFA</div><div class="kpi-sub">Dernier mois</div></div>
+    <div class="kpi-card"><div class="kpi-label">Valeur BRVM</div><div class="kpi-value" id="kpi-brvm-val">— FCFA</div><div class="kpi-sub">Dernier mois</div></div>
+    <div class="kpi-card"><div class="kpi-label">Plus-Value</div><div class="kpi-value" id="kpi-pv">— FCFA</div><div class="kpi-sub">NSIA + BRVM</div></div>
+    <div class="kpi-card"><div class="kpi-label">Rendement</div><div class="kpi-value" id="kpi-rdt">— %</div><div class="kpi-sub">Sur capital</div></div>
+    <div class="kpi-card"><div class="kpi-label">Dividendes</div><div class="kpi-value" id="kpi-div">— FCFA</div><div class="kpi-sub">Total année</div></div>
+  </div>
+
+  <div class="section-hdr"><div class="dot"></div><h2>Votre stratégie en 3 phases</h2></div>
+  <div class="phase-grid">
+    <div class="phase-card"><div class="phase-num">01</div><div class="phase-title">Phase 1 — Démarrage</div><div class="phase-desc">3 fonds · 35 000 FCFA/mois jusqu'à 250 000 FCFA</div><span class="phase-badge">~7 mois</span></div>
+    <div class="phase-card"><div class="phase-num">02</div><div class="phase-title">Phase 2 — Croissance</div><div class="phase-desc">4 fonds · 40 000 FCFA/mois jusqu'à 500 000 FCFA</div><span class="phase-badge">~6 mois</span></div>
+    <div class="phase-card"><div class="phase-num">03</div><div class="phase-title">Phase 3 — Accélération</div><div class="phase-desc">5 fonds · 45 000 FCFA/mois · Long terme</div><span class="phase-badge">Objectif 1M+</span></div>
+  </div>
+
+  <div class="section-hdr"><div class="dot"></div><h2>Projection long terme (12,85%/an)</h2></div>
+  <div class="proj-grid" id="proj-grid"></div>
+
+  <div class="section-hdr"><div class="dot"></div><h2>Vos 5 fonds NSIA</h2></div>
+  <div id="fonds-list"></div>
+</div>
+
+<!-- NSIA -->
+<div id="nsia" class="panel">
+  <div class="tip">
+    <strong>📌 Comment saisir :</strong><br>
+    • <strong>Versement du mois</strong> = montant investi ce mois uniquement<br>
+    • <strong>Capital cumulé</strong> = calculé automatiquement<br>
+    • <strong>Valeur portefeuille</strong> = montant sur votre relevé NSIA<br>
+    • Appuyez sur <strong>Entrée</strong> pour valider — sync automatique ☁️
+  </div>
+  <div class="legend">
+    <div class="legend-item"><div class="ldot" style="background:rgba(45,95,166,.5);border:1px dashed #90c4ff"></div>À saisir</div>
+    <div class="legend-item"><div class="ldot" style="background:#e2b96a;opacity:.7"></div>Cumulé auto</div>
+    <div class="legend-item"><div class="ldot" style="background:var(--grey2)"></div>Calculé auto</div>
+    <div class="legend-item"><div class="ldot" style="background:rgba(201,168,76,.3);border:1px solid var(--gold)"></div>Bilan ⭐</div>
+  </div>
+  <div class="section-hdr"><div class="dot"></div><h2 id="nsia-title">NSIA Invest — 2025</h2></div>
+  <div class="table-wrap">
+    <table>
+      <thead><tr>
+        <th>MOIS</th>
+        <th>Versement<br>mois<br><span style="color:#90c4ff;font-size:.5rem">▶ saisir</span></th>
+        <th>Capital<br>Cumulé<br><span style="color:#e2b96a;font-size:.5rem">▶ auto</span></th>
+        <th>Valeur<br>Portefeuille<br><span style="color:#90c4ff;font-size:.5rem">▶ saisir</span></th>
+        <th>Gain/<br>Perte<br><span style="color:var(--grey);font-size:.5rem">▶ auto</span></th>
+        <th>Rdt<br>Mensuel<br><span style="color:var(--grey);font-size:.5rem">▶ auto</span></th>
+        <th>Rdt<br>Cumulé<br><span style="color:var(--grey);font-size:.5rem">▶ auto</span></th>
+        <th>Dividendes<br><span style="color:#90c4ff;font-size:.5rem">▶ saisir</span></th>
+        <th>Actions clés</th>
+        <th>Statut</th>
+      </tr></thead>
+      <tbody id="nsia-body"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- BRVM -->
+<div id="brvm" class="panel">
+  <div class="tip">
+    <strong>📌 Comment saisir :</strong><br>
+    • <strong>Valeur portefeuille</strong> = valeur de vos titres (relevé SGI)<br>
+    • <strong>+/- Value</strong> = gain ou perte vs prix d'achat<br>
+    • <strong>BRVM Composite</strong> = variation mensuelle sur brvm.org
+  </div>
+  <div class="legend">
+    <div class="legend-item"><div class="ldot" style="background:rgba(45,95,166,.5);border:1px dashed #90c4ff"></div>À saisir</div>
+    <div class="legend-item"><div class="ldot" style="background:var(--grey2)"></div>Calculé auto</div>
+  </div>
+  <div class="section-hdr"><div class="dot"></div><h2 id="brvm-title">BRVM — 2025</h2></div>
+  <div class="table-wrap">
+    <table>
+      <thead><tr>
+        <th>MOIS</th>
+        <th>Valeur<br>Portefeuille<br><span style="color:#90c4ff;font-size:.5rem">▶ saisir</span></th>
+        <th>+/- Value<br><span style="color:#90c4ff;font-size:.5rem">▶ saisir</span></th>
+        <th>Variation<br>Mensuelle<br><span style="color:var(--grey);font-size:.5rem">▶ auto</span></th>
+        <th>BRVM<br>Composite<br><span style="color:#90c4ff;font-size:.5rem">▶ saisir</span></th>
+        <th>Titres<br>Détenus<br><span style="color:#90c4ff;font-size:.5rem">▶ saisir</span></th>
+        <th>Dividendes<br><span style="color:#90c4ff;font-size:.5rem">▶ saisir</span></th>
+        <th>Actions clés</th>
+        <th>Statut</th>
+      </tr></thead>
+      <tbody id="brvm-body"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- CHECKLIST -->
+<div id="checklist" class="panel">
+  <div class="section-hdr"><div class="dot"></div><h2>Checklist Mensuelle — 18 Tâches</h2></div>
+  <div class="table-wrap">
+    <table>
+      <thead><tr>
+        <th>#</th>
+        <th style="text-align:left;min-width:200px">Tâche</th>
+        <th>NSIA</th><th>BRVM</th>
+        <th>Fréquence</th><th>Priorité</th>
+        <th style="min-width:130px">Vos Notes</th>
+      </tr></thead>
+      <tbody id="check-body"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- CALENDRIER -->
+<div id="calendrier" class="panel">
+  <div class="section-hdr"><div class="dot"></div><h2 id="cal-title">Calendrier 2025</h2></div>
+  <div class="table-wrap">
+    <table>
+      <thead><tr>
+        <th>MOIS</th><th>Priorité</th>
+        <th style="min-width:160px">Actions NSIA</th>
+        <th style="min-width:160px">Actions BRVM</th>
+        <th style="min-width:130px">Indicateurs</th>
+        <th>Bilan</th>
+      </tr></thead>
+      <tbody id="cal-body"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- GLOSSAIRE -->
+<div id="glossaire" class="panel">
+  <div class="section-hdr"><div class="dot"></div><h2>Glossaire & Conseils</h2></div>
+  <div id="gloss-grid"></div>
+</div>
+
+</div><!-- end scroll-area -->
+
+<!-- BOTTOM NAV -->
+<div class="tabs">
+  <button class="tab active" onclick="show('accueil',this)"><span class="tab-icon">🏦</span>Accueil</button>
+  <button class="tab" onclick="show('nsia',this)"><span class="tab-icon">🟢</span>NSIA</button>
+  <button class="tab" onclick="show('brvm',this)"><span class="tab-icon">🔵</span>BRVM</button>
+  <button class="tab" onclick="show('checklist',this)"><span class="tab-icon">✅</span>Check</button>
+  <button class="tab" onclick="show('calendrier',this)"><span class="tab-icon">📅</span>Calendrier</button>
+  <button class="tab" onclick="show('glossaire',this)"><span class="tab-icon">📖</span>Glossaire</button>
+</div>
+
+<script>
+// ── FIREBASE CONFIG ────────────────────────────────────────────────────────
+const firebaseConfig = {
+  apiKey: "AIzaSyBgzcEbPFCWxEcbVB2sJWqUDvtaI3sTC5I",
+  authDomain: "nsia-portefeuille.firebaseapp.com",
+  projectId: "nsia-portefeuille",
+  storageBucket: "nsia-portefeuille.firebasestorage.app",
+  messagingSenderId: "398408344803",
+  appId: "1:398408344803:web:0b762b75ce973652b391d6"
+};
+
+// Simple login system (password stored locally)
+const USERS = { "ouattara": "nsia2025" }; // identifiant: mot de passe
+let currentUser = null;
+let db = null;
+let useFirebase = false;
+
+// Try Firebase
+try {
+  firebase.initializeApp(firebaseConfig);
+  db = firebase.firestore();
+  useFirebase = true;
+} catch(e) {
+  useFirebase = false;
+}
+
+// ── LOGIN ──────────────────────────────────────────────────────────────────
+function doLogin(){
+  const user = document.getElementById('login-user').value.trim().toLowerCase();
+  const pass = document.getElementById('login-pass').value;
+  if(USERS[user] && USERS[user] === pass){
+    currentUser = user;
+    document.getElementById('login-overlay').style.display='none';
+    document.getElementById('sync-status').textContent = useFirebase ? '☁️ Cloud' : '💾 Local';
+    loadData();
+  } else {
+    document.getElementById('login-err').style.display='block';
+  }
+}
+// Allow Enter key on login
+document.getElementById('login-pass').addEventListener('keydown', e => { if(e.key==='Enter') doLogin(); });
+document.getElementById('login-user').addEventListener('keydown', e => { if(e.key==='Enter') document.getElementById('login-pass').focus(); });
+
+// ── STATIC DATA ────────────────────────────────────────────────────────────
+const ALL_MONTHS=["Janvier","Février","Mars","Avril","Mai","Juin","Juillet","Août","Septembre","Octobre","Novembre","Décembre"];
+const MONTHS_2025=["Mars","Avril","Mai","Juin","Juillet","Août","Septembre","Octobre","Novembre","Décembre"];
+const IS_BILAN_2025=[false,false,false,true,false,false,true,false,false,true];
+
+const NSIA_ACT=["Vérifier NAV & relevé NSIA","Comparer fonds, vérifier frais","Réinvestir dividendes si perçus","⭐ BILAN T1 — ajuster allocation","Analyser performance 4 mois","Comparer rendement vs inflation","⭐ BILAN T2 — réévaluer stratégie","Analyser frais annuels, fiscalité","Préparer arbitrages, décisions","⭐ BILAN ANNUEL — objectifs"];
+const BRVM_ACT=["Analyser BRVM Composite, titres","Suivre AGO, vérifier dividendes","Surveiller détachements coupons","⭐ BILAN T1 BRVM — rebalancement","Analyser résultats S1 sociétés","Comparer perf. vs BRVM Composite","⭐ BILAN T2 — secteurs porteurs Q4","Dividendes & détachements Q3","Arbitrages fin d'année","⭐ BILAN ANNUEL — stratégie"];
+
+const FONDS=[
+  {name:"Aurore Sécurité 2",taux:"~8,00%",risque:"Très faible",classe:"r-low",desc:"Fonds obligataire court terme.",phase:"Phase 1",montant:"11 700 → 8 100 FCFA"},
+  {name:"Aurore Monétaris",taux:"9,05%",risque:"Très faible",classe:"r-low",desc:"Fonds monétaire liquide.",phase:"Phase 1",montant:"11 700 → 9 900 FCFA"},
+  {name:"Fonds Obligations Souveraines",taux:"9,54%",risque:"Faible",classe:"r-low",desc:"Bons du Trésor des États UEMOA.",phase:"Phase 1",montant:"11 600 → 9 000 FCFA"},
+  {name:"NSIA Fonds Diversifié",taux:"13,13%",risque:"Moyen",classe:"r-med",desc:"Mix actions + obligations.",phase:"Ajouté Phase 2",montant:"14 000 → 12 600 FCFA"},
+  {name:"Aurore Opportunités",taux:"23,94%",risque:"Élevé",classe:"r-high",desc:"Fonds actions. Fort potentiel.",phase:"Ajouté Phase 3",montant:"9 000 FCFA/mois"},
+];
+
+const TASKS=[[1,"Récupérer le relevé mensuel (NSIA & SGI)","✔","✔","Mensuelle","HAUTE"],[2,"Enregistrer la valeur actuelle du portefeuille","✔","✔","Mensuelle","HAUTE"],[3,"Calculer le rendement mensuel et cumulé","✔","✔","Mensuelle","HAUTE"],[4,"Vérifier et enregistrer les dividendes","✔","✔","Mensuelle","HAUTE"],[5,"Consulter BRVM Composite sur brvm.org","—","✔","Mensuelle","HAUTE"],[6,"Suivre AGO, résultats et dividendes","—","✔","Mensuelle","HAUTE"],[7,"Vérifier les frais de gestion NSIA","✔","—","Trimestrielle","MOYENNE"],[8,"Comparer perf. vs benchmark","✔","✔","Mensuelle","HAUTE"],[9,"Analyser structure sectorielle BRVM","—","✔","Trimestrielle","MOYENNE"],[10,"Évaluer renforcement ou allègement","✔","✔","Mensuelle","MOYENNE"],[11,"Mettre à jour le tableau de bord","✔","✔","Mensuelle","HAUTE"],[12,"Fixer l'objectif du mois suivant","✔","✔","Mensuelle","HAUTE"],[13,"Vérifier conformité fiscale BRVM 15%","—","✔","Semestrielle","MOYENNE"],[14,"Rédiger le bilan trimestriel","✔","✔","Trimestrielle","HAUTE"],[15,"Décider du réinvestissement dividendes","✔","✔","Perception","MOYENNE"],[16,"Vérifier notation NSIA Assurances","✔","—","Semestrielle","FAIBLE"],[17,"Archiver tous les documents","✔","✔","Mensuelle","MOYENNE"],[18,"Mettre à jour coordonnées conseiller","✔","✔","Annuelle","FAIBLE"]];
+
+const CAL_DATA=[["Janvier","HAUTE","Vérifier relevé annuel NSIA\nObjectifs de l'année","Bilan annuel BRVM\nStratégie titres","Performance annuelle","—"],["Février","MOYENNE","Comparer fonds disponibles\nVérifier frais","Préparer AGO\nAnalyser dividendes","AGO · cours","—"],["Mars","MOYENNE","Vérifier dividendes perçus\nPerformance YTD","Détachements coupons\nOpportunités post-AGO","Cours ex-dividende","—"],["Avril","HAUTE","⭐ BILAN T1 (Jan–Avr)\nAjuster allocation","⭐ BILAN T1 BRVM\nRebalancement","Performance T1 · inflation","⭐ BILAN T1"],["Mai","NORMALE","Vérifier relevé T2\nAnalyser frais 4 mois","Résultats Q1 sociétés\nSurveiller liquidité","Résultats Q1","—"],["Juin","NORMALE","Rendement vs inflation\nÉvaluer allocation","Tendance BRVM 5 mois\nSous-performants","BRVM 10 · Composite","—"],["Juillet","HAUTE","⭐ BILAN T2 (Mai–Juil)\nRéévaluer stratégie","⭐ BILAN T2 BRVM\nSecteurs porteurs S2","Bilan 6 mois · objectif S2","⭐ BILAN T2"],["Août","MOYENNE","Frais annuels cumulés\nAnticiper fiscalité","Résultats S1\nDividendes exceptionnels","Résultats S1","—"],["Septembre","MOYENNE","Performance 8 mois\nPréparer bilan annuel","Titres à potentiel Q4\nAllègement/renforcement","YTD · volatilité","—"],["Octobre","HAUTE","⭐ BILAN T3 (Août–Oct)\nRéévaluer stratégie","⭐ BILAN T3 BRVM\nPréparation Q4","Bilan 9 mois · objectif Q4","⭐ BILAN T3"],["Novembre","MOYENNE","Performance 10 mois\nDécisions fin d'année","Arbitrages fin d'année\nTitres à conserver","Performance YTD","—"],["Décembre","HAUTE","⭐ BILAN ANNUEL\nRendement total\nObjectifs année suivante","⭐ BILAN ANNUEL BRVM\n+/- values · stratégie","Rendement · fiscalité","⭐ BILAN ANNUEL"]];
+
+const GLOSS=[["NAV","Valeur de chaque part d'un fonds NSIA. Prix auquel vous souscrivez ou rachetez.","Comparez la NAV mensuelle pour calculer votre gain ou perte."],["Versement du mois","Montant investi CE mois uniquement. Le total cumulé est calculé automatiquement.","Ex : 35 000 FCFA en mars + 35 000 en avril = 70 000 FCFA cumulés."],["Rendement Mensuel","Performance en % sur un mois vs le mois précédent.","(Valeur ce mois − Valeur mois préc.) ÷ Valeur mois préc. × 100"],["Rendement Cumulé","Performance totale depuis votre 1er versement.","(Valeur actuelle − Capital cumulé) ÷ Capital cumulé × 100"],["Plus-Value","Gain réalisé ou latent : valeur actuelle moins capital total investi.","Latente = sur papier. Réalisée = après rachat effectif."],["Intérêts Composés","Vos gains génèrent eux-mêmes des gains. La magie du long terme.","45 000 FCFA/mois à 12,85%/an = ~8 500 000 FCFA en 10 ans !"],["BRVM Composite","Indice de toutes les sociétés cotées BRVM. Baromètre du marché UEMOA.","Comparez votre performance à cet indice."],["Dividende","Revenu versé aux actionnaires. 15% de retenue à la source UEMOA.","Dividende net = Dividende brut × 85%."],["Rebalancement","Ajustement pour revenir à votre allocation cible.","À faire au minimum une fois par trimestre."],["AGO","Réunion annuelle des actionnaires pour approuver dividendes et comptes.","À surveiller mars–juin chaque année."],["Benchmark","Référence pour comparer votre performance.","Utilisez BRVM Composite ou taux bons du Trésor UEMOA."],["Taux sans risque BCEAO","Rendement des bons du Trésor UEMOA.","Si votre rendement < taux sans risque → revoir la stratégie."],["Fiscalité BRVM","15% sur dividendes. Plus-values sur cession généralement exonérées.","Vérifiez la fiscalité de votre pays de résidence."],["SGI","Société de Gestion et d'Intermédiation. Votre broker pour la BRVM.","Nécessaire pour acheter/vendre des actions en bourse."]];
+
+// ── STATE ──────────────────────────────────────────────────────────────────
+let currentYear = 2025;
+const START_YEAR = 2025;
+const END_YEAR = 2075;
+
+function getMonthsForYear(y){
+  return y === 2025 ? MONTHS_2025 : ALL_MONTHS;
+}
+function getBilanForYear(y){
+  if(y === 2025) return IS_BILAN_2025;
+  return [false,false,false,true,false,false,true,false,false,true,false,true];
+}
+
+function emptyNsia(months){ return months.map(()=>({versement:'',valeur:'',div:'',statut:'En cours'})); }
+function emptyBrvm(months){ return months.map(()=>({valeur:'',pv:'',composite:'',titres:'',div:'',statut:'En cours'})); }
+
+// In-memory cache: { year: { nsiaData, brvmData, checkNotes } }
+let cache = {};
+let checkNotes = Array(18).fill('');
+
+function getYearData(y){
+  if(!cache[y]){
+    const m = getMonthsForYear(y);
+    cache[y] = { nsiaData: emptyNsia(m), brvmData: emptyBrvm(m) };
+  }
+  return cache[y];
+}
+
+// ── FIREBASE SAVE/LOAD ─────────────────────────────────────────────────────
+async function saveData(){
+  const yd = getYearData(currentYear);
+  const payload = { nsiaData: yd.nsiaData, brvmData: yd.brvmData, checkNotes, updatedAt: new Date().toISOString() };
+  
+  // Always save locally
+  try { localStorage.setItem(`pf_${currentUser}_${currentYear}`, JSON.stringify(payload)); } catch(e){}
+  try { localStorage.setItem(`pf_${currentUser}_check`, JSON.stringify(checkNotes)); } catch(e){}
+
+  // Try Firebase
+  if(useFirebase && db && currentUser){
+    try {
+      await db.collection('portfolios').doc(`${currentUser}_${currentYear}`).set(payload);
+      await db.collection('portfolios').doc(`${currentUser}_check`).set({checkNotes, updatedAt: new Date().toISOString()});
+      showSaveMsg('☁️ Sauvegardé sur le cloud !', '#4ade80');
+      return;
+    } catch(e){}
+  }
+  showSaveMsg('💾 Sauvegardé localement', '#e2b96a');
+}
+
+async function loadData(){
+  // Load checknotes
+  try {
+    const lc = localStorage.getItem(`pf_${currentUser}_check`);
+    if(lc) checkNotes = JSON.parse(lc).checkNotes || checkNotes;
+  } catch(e){}
+
+  // Try Firebase for checknotes
+  if(useFirebase && db){
+    try {
+      const doc = await db.collection('portfolios').doc(`${currentUser}_check`).get();
+      if(doc.exists) checkNotes = doc.data().checkNotes || checkNotes;
+    } catch(e){}
+  }
+
+  await loadYear(currentYear);
+}
+
+async function loadYear(y){
+  // Try local first
+  try {
+    const ls = localStorage.getItem(`pf_${currentUser}_${y}`);
+    if(ls){
+      const d = JSON.parse(ls);
+      const m = getMonthsForYear(y);
+      cache[y] = {
+        nsiaData: d.nsiaData || emptyNsia(m),
+        brvmData: d.brvmData || emptyBrvm(m)
+      };
+    }
+  } catch(e){}
+
+  // Try Firebase (overrides local if more recent)
+  if(useFirebase && db){
+    try {
+      const doc = await db.collection('portfolios').doc(`${currentUser}_${y}`).get();
+      if(doc.exists){
+        const d = doc.data();
+        const m = getMonthsForYear(y);
+        cache[y] = {
+          nsiaData: d.nsiaData || emptyNsia(m),
+          brvmData: d.brvmData || emptyBrvm(m)
+        };
+      }
+    } catch(e){}
+  }
+
+  buildAll();
+}
+
+function showSaveMsg(msg, color){
+  const el = document.getElementById('save-info');
+  el.style.color = color;
+  el.textContent = msg + ' · ' + new Date().toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
+  setTimeout(()=>{ el.style.color=''; el.textContent='Sync automatique activée'; }, 4000);
+}
+
+// ── YEAR NAV ───────────────────────────────────────────────────────────────
+function buildYearNav(){
+  const container = document.getElementById('year-quick-btns');
+  container.innerHTML = '';
+  // Show nearby years
+  for(let y = Math.max(START_YEAR, currentYear-2); y <= Math.min(END_YEAR, currentYear+3); y++){
+    if(y === currentYear) continue;
+    const btn = document.createElement('button');
+    btn.className = 'year-btn';
+    btn.textContent = y;
+    btn.onclick = () => switchYear(y);
+    container.appendChild(btn);
+  }
+  document.getElementById('year-display').textContent = currentYear;
+  document.getElementById('header-year').textContent = currentYear;
+  document.getElementById('header-badge').textContent = currentYear === 2025 ? '10 Mois' : '12 Mois';
+  document.getElementById('nsia-title').textContent = `NSIA Invest — ${currentYear}`;
+  document.getElementById('brvm-title').textContent = `BRVM — ${currentYear}`;
+  document.getElementById('cal-title').textContent = `Calendrier ${currentYear}`;
+}
+
+async function changeYear(delta){
+  const ny = currentYear + delta;
+  if(ny < START_YEAR || ny > END_YEAR) return;
+  await switchYear(ny);
+}
+
+async function switchYear(y){
+  currentYear = y;
+  buildYearNav();
+  await loadYear(y);
+}
+
+async function resetYear(){
+  if(!confirm(`Réinitialiser toutes les données de ${currentYear} ?`)) return;
+  const m = getMonthsForYear(currentYear);
+  cache[currentYear] = { nsiaData: emptyNsia(m), brvmData: emptyBrvm(m) };
+  try { localStorage.removeItem(`pf_${currentUser}_${currentYear}`); } catch(e){}
+  if(useFirebase && db){ try { await db.collection('portfolios').doc(`${currentUser}_${currentYear}`).delete(); } catch(e){} }
+  buildAll();
+}
+
+// ── BUILD ALL ──────────────────────────────────────────────────────────────
+function buildAll(){
+  buildNsia(); buildBrvm(); buildChecklist(); buildCal(); updateKPIs();
+}
+
+// ── NSIA TABLE ─────────────────────────────────────────────────────────────
+function buildNsia(){
+  const months = getMonthsForYear(currentYear);
+  const isBilan = getBilanForYear(currentYear);
+  const yd = getYearData(currentYear);
+  const tb = document.getElementById('nsia-body');
+  tb.innerHTML = '';
+  months.forEach((m,i)=>{
+    const d = yd.nsiaData[i];
+    const tr = document.createElement('tr');
+    if(isBilan[i]) tr.className='bilan-row';
+    const actIdx = currentYear===2025 ? i : i%10;
+    tr.innerHTML=`
+      <td>${m}${isBilan[i]?'<br><span style="font-size:.53rem;color:var(--gold)">⭐</span>':''}</td>
+      <td><input type="number" id="n-ver-${i}" placeholder="ex: 35000" value="${d.versement}" onchange="getYearData(${currentYear}).nsiaData[${i}].versement=this.value;recalcNsia();autoSave()"></td>
+      <td><span id="n-cum-${i}" class="cumul-val">—</span></td>
+      <td><input type="number" id="n-val-${i}" placeholder="relevé NSIA" value="${d.valeur}" onchange="getYearData(${currentYear}).nsiaData[${i}].valeur=this.value;recalcNsia();autoSave()"></td>
+      <td><span id="n-gp-${i}" class="comp neu">—</span></td>
+      <td><span id="n-rdtm-${i}" class="comp neu">—</span></td>
+      <td><span id="n-rdtc-${i}" class="comp neu">—</span></td>
+      <td><input type="number" id="n-div-${i}" placeholder="0" value="${d.div}" onchange="getYearData(${currentYear}).nsiaData[${i}].div=this.value;updateKPIs();autoSave()"></td>
+      <td class="act">${NSIA_ACT[actIdx]}</td>
+      <td><select id="n-st-${i}" onchange="getYearData(${currentYear}).nsiaData[${i}].statut=this.value;autoSave()">
+        ${['En cours','Fait ✔','À faire','Report'].map(s=>`<option${d.statut===s?' selected':''}>${s}</option>`).join('')}
+      </select></td>`;
+    tb.appendChild(tr);
+  });
+  recalcNsia();
+}
+
+function buildBrvm(){
+  const months = getMonthsForYear(currentYear);
+  const isBilan = getBilanForYear(currentYear);
+  const yd = getYearData(currentYear);
+  const tb = document.getElementById('brvm-body');
+  tb.innerHTML = '';
+  months.forEach((m,i)=>{
+    const d = yd.brvmData[i];
+    const tr = document.createElement('tr');
+    if(isBilan[i]) tr.className='bilan-row';
+    const actIdx = currentYear===2025 ? i : i%10;
+    tr.innerHTML=`
+      <td>${m}${isBilan[i]?'<br><span style="font-size:.53rem;color:var(--gold)">⭐</span>':''}</td>
+      <td><input type="number" id="b-val-${i}" placeholder="relevé SGI" value="${d.valeur}" onchange="getYearData(${currentYear}).brvmData[${i}].valeur=this.value;recalcBrvm();autoSave()"></td>
+      <td><input type="number" id="b-pv-${i}" placeholder="+/- achat" value="${d.pv}" onchange="getYearData(${currentYear}).brvmData[${i}].pv=this.value;autoSave()"></td>
+      <td><span id="b-rdtm-${i}" class="comp neu">—</span></td>
+      <td><input type="number" id="b-comp-${i}" placeholder="%" step="0.01" value="${d.composite}" onchange="getYearData(${currentYear}).brvmData[${i}].composite=this.value;autoSave()"></td>
+      <td><input type="text" id="b-tit-${i}" placeholder="ex: SGCI, ETIT" value="${d.titres}" onchange="getYearData(${currentYear}).brvmData[${i}].titres=this.value;autoSave()"></td>
+      <td><input type="number" id="b-div-${i}" placeholder="0" value="${d.div}" onchange="getYearData(${currentYear}).brvmData[${i}].div=this.value;updateKPIs();autoSave()"></td>
+      <td class="act">${BRVM_ACT[actIdx]}</td>
+      <td><select id="b-st-${i}" onchange="getYearData(${currentYear}).brvmData[${i}].statut=this.value;autoSave()">
+        ${['En cours','Fait ✔','À faire','Report'].map(s=>`<option${d.statut===s?' selected':''}>${s}</option>`).join('')}
+      </select></td>`;
+    tb.appendChild(tr);
+  });
+  recalcBrvm();
+}
+
+// ── RECALC ─────────────────────────────────────────────────────────────────
+const v=s=>parseFloat(s)||0;
+const fmt=n=>Number(n).toLocaleString('fr-FR',{maximumFractionDigits:0});
+const fmtPct=n=>(n>=0?'+':'')+n.toFixed(2)+'%';
+
+function recalcNsia(){
+  const yd = getYearData(currentYear);
+  let cumul = 0;
+  // Add previous years cumul
+  for(let y = START_YEAR; y < currentYear; y++){
+    const pd = cache[y];
+    if(pd) pd.nsiaData.forEach(d => cumul += v(d.versement));
+  }
+  const startCumul = cumul;
+
+  yd.nsiaData.forEach((_,i)=>{
+    cumul += v(yd.nsiaData[i].versement);
+    const val = v(yd.nsiaData[i].valeur);
+    const prevVal = i>0 ? v(yd.nsiaData[i-1].valeur) : 0;
+
+    const cEl=document.getElementById(`n-cum-${i}`);
+    if(cEl) cEl.textContent=cumul>0?fmt(cumul)+' FCFA':'—';
+    const gpEl=document.getElementById(`n-gp-${i}`);
+    if(gpEl){if(val&&cumul){const gp=val-cumul;gpEl.textContent=(gp>=0?'+':'')+fmt(gp)+' FCFA';gpEl.className='comp '+(gp>0?'pos':gp<0?'neg':'neu');}else{gpEl.textContent='—';gpEl.className='comp neu';}}
+    const rmEl=document.getElementById(`n-rdtm-${i}`);
+    if(rmEl){if(val&&prevVal&&i>0){const rm=(val-prevVal)/prevVal*100;rmEl.textContent=fmtPct(rm);rmEl.className='comp '+(rm>0?'pos':rm<0?'neg':'neu');}else{rmEl.textContent='—';rmEl.className='comp neu';}}
+    const rcEl=document.getElementById(`n-rdtc-${i}`);
+    if(rcEl){if(val&&cumul){const rc=(val-cumul)/cumul*100;rcEl.textContent=fmtPct(rc);rcEl.className='comp '+(rc>0?'pos':rc<0?'neg':'neu');}else{rcEl.textContent='—';rcEl.className='comp neu';}}
+  });
+  updateKPIs();
+}
+
+function recalcBrvm(){
+  const yd = getYearData(currentYear);
+  yd.brvmData.forEach((_,i)=>{
+    const val=v(yd.brvmData[i].valeur);
+    const prevVal=i>0?v(yd.brvmData[i-1].valeur):0;
+    const rmEl=document.getElementById(`b-rdtm-${i}`);
+    if(rmEl){if(val&&prevVal&&i>0){const rm=(val-prevVal)/prevVal*100;rmEl.textContent=fmtPct(rm);rmEl.className='comp '+(rm>0?'pos':rm<0?'neg':'neu');}else{rmEl.textContent='—';rmEl.className='comp neu';}}
+  });
+  updateKPIs();
+}
+
+// ── CHECKLIST ──────────────────────────────────────────────────────────────
+function buildChecklist(){
+  const tb=document.getElementById('check-body');
+  tb.innerHTML='';
+  TASKS.forEach(([n,t,ns,br,fr,p],i)=>{
+    const tr=document.createElement('tr');
+    let pH=p==='HAUTE'?`<span class="prio ph">HAUTE</span>`:p==='MOYENNE'?`<span class="prio pm">MOY.</span>`:`<span class="prio pl">FAIBLE</span>`;
+    tr.innerHTML=`
+      <td style="text-align:center;color:var(--grey2)">${n}</td>
+      <td style="text-align:left;font-size:.7rem">${t}</td>
+      <td style="text-align:center"><span class="${ns==='✔'?'chk-y':'chk-n'}">${ns}</span></td>
+      <td style="text-align:center"><span class="${br==='✔'?'chk-y':'chk-n'}">${br}</span></td>
+      <td style="text-align:center;font-size:.67rem;${fr!=='Mensuelle'?'color:var(--gold-mid)':''}">${fr}</td>
+      <td style="text-align:center">${pH}</td>
+      <td><input type="text" placeholder="Notes..." value="${checkNotes[i]}" onchange="checkNotes[${i}]=this.value;autoSave()"></td>`;
+    tb.appendChild(tr);
+  });
+}
+
+// ── CALENDRIER ─────────────────────────────────────────────────────────────
+function buildCal(){
+  const tb=document.getElementById('cal-body');
+  tb.innerHTML='';
+  const calMonths = currentYear===2025 ? CAL_DATA.slice(2) : CAL_DATA;
+  calMonths.forEach(([m,p,ns,br,ind,bil])=>{
+    const iB=bil.includes('⭐');
+    const tr=document.createElement('tr');
+    if(iB) tr.className='bilan-row';
+    const nl=s=>s.split('\n').map(l=>`<div>${l}</div>`).join('');
+    const pH=p==='HAUTE'?`<span class="prio ph">HAUTE</span>`:p==='NORMALE'?`<span class="prio pm">NORM.</span>`:`<span class="prio pm">${p}</span>`;
+    tr.innerHTML=`
+      <td>${m}</td>
+      <td style="text-align:center">${pH}</td>
+      <td style="font-size:.68rem;line-height:1.5;color:#6ee7b7">${nl(ns)}</td>
+      <td style="font-size:.68rem;line-height:1.5;color:#90c4ff">${nl(br)}</td>
+      <td style="font-size:.66rem;color:var(--grey)">${ind}</td>
+      <td style="text-align:center;font-size:.7rem;font-weight:600;color:${iB?'var(--gold)':'var(--grey2)'}">${bil}</td>`;
+    tb.appendChild(tr);
+  });
+}
+
+// ── PROJECTION ─────────────────────────────────────────────────────────────
+function buildProjection(){
+  const g = document.getElementById('proj-grid');
+  g.innerHTML = '';
+  const taux = 0.1285;
+  const mensuel = 45000;
+  const milestones = [2026,2027,2030,2035,2040,2050,2060,2075];
+  
+  // Calculate current portfolio value
+  let baseVal = 0;
+  Object.values(cache).forEach(yd => {
+    if(yd && yd.nsiaData){
+      const vals = yd.nsiaData.map(d=>v(d.valeur)).filter(x=>x>0);
+      if(vals.length) baseVal = Math.max(baseVal, vals[vals.length-1]);
+    }
+  });
+  if(!baseVal) baseVal = 0;
+
+  milestones.forEach(y => {
+    const years = y - currentYear;
+    if(years <= 0) return;
+    // Future value with monthly contributions
+    const fv = baseVal * Math.pow(1+taux, years) + mensuel*12 * (Math.pow(1+taux,years)-1)/taux;
+    const gain = fv - (baseVal + mensuel*12*years);
+    const gainCls = gain > 0 ? 'pos' : 'neg';
+    g.innerHTML += `<div class="proj-card">
+      <div class="proj-year">${y} (dans ${years} ans)</div>
+      <div class="proj-val">${fmt(Math.round(fv))} FCFA</div>
+      <div class="proj-gain ${gainCls}">+${fmt(Math.round(gain))} FCFA de gains</div>
+    </div>`;
+  });
+}
+
+// ── FONDS LIST ─────────────────────────────────────────────────────────────
+function buildFonds(){
+  const el=document.getElementById('fonds-list');
+  el.innerHTML='';
+  FONDS.forEach(f=>{
+    el.innerHTML+=`<div class="fonds-card">
+      <div class="fonds-name">${f.name}</div>
+      <div class="fonds-row"><span>Rendement 2025</span><span class="fonds-taux">${f.taux}/an</span></div>
+      <div class="fonds-row"><span>Risque</span><span class="fonds-risque ${f.classe}">${f.risque}</span></div>
+      <div class="fonds-row"><span>Versement</span><span style="color:var(--gold-mid);font-size:.7rem">${f.montant}</span></div>
+      <div class="fonds-row" style="margin-top:5px"><span style="font-size:.68rem;color:var(--grey2)">${f.desc}</span></div>
+      <div style="margin-top:5px"><span class="phase-badge">${f.phase}</span></div>
+    </div>`;
+  });
+}
+
+// ── GLOSSAIRE ───────────────────────────────────────────────────────────────
+function buildGloss(){
+  const g=document.getElementById('gloss-grid');
+  GLOSS.forEach(([t,d,tip])=>{
+    g.innerHTML+=`<div class="gloss-card"><div class="gloss-term">${t}</div><div class="gloss-def">${d}</div><div class="gloss-tip">💡 ${tip}</div></div>`;
+  });
+}
+
+// ── KPIs ────────────────────────────────────────────────────────────────────
+function updateKPIs(){
+  const yd = getYearData(currentYear);
+  let cumul=0;
+  // All years cumul
+  for(let y=START_YEAR; y<=currentYear; y++){
+    const pd=cache[y];
+    if(pd) pd.nsiaData.forEach(d=>cumul+=v(d.versement));
+  }
+  let nVal=0; const nArr=yd.nsiaData.map(d=>v(d.valeur)).filter(x=>x>0); if(nArr.length) nVal=nArr[nArr.length-1];
+  let bVal=0; const bArr=yd.brvmData.map(d=>v(d.valeur)).filter(x=>x>0); if(bArr.length) bVal=bArr[bArr.length-1];
+  const nDiv=yd.nsiaData.reduce((s,d)=>s+v(d.div),0);
+  const bDiv=yd.brvmData.reduce((s,d)=>s+v(d.div),0);
+  const totalVal=nVal+bVal;
+  const pv=cumul>0?totalVal-cumul:0;
+  const rdt=cumul>0?pv/cumul*100:0;
+  document.getElementById('kpi-capital').textContent=cumul>0?fmt(cumul)+' FCFA':'— FCFA';
+  document.getElementById('kpi-nsia-val').textContent=nVal>0?fmt(nVal)+' FCFA':'— FCFA';
+  document.getElementById('kpi-brvm-val').textContent=bVal>0?fmt(bVal)+' FCFA':'— FCFA';
+  document.getElementById('kpi-pv').textContent=cumul>0?(pv>=0?'+':'')+fmt(pv)+' FCFA':'— FCFA';
+  document.getElementById('kpi-rdt').textContent=cumul>0?(rdt>=0?'+':'')+rdt.toFixed(2)+'%':'— %';
+  document.getElementById('kpi-div').textContent=(nDiv+bDiv)>0?fmt(nDiv+bDiv)+' FCFA':'— FCFA';
+  buildProjection();
+}
+
+// ── AUTO SAVE ────────────────────────────────────────────────────────────────
+let saveTimeout = null;
+function autoSave(){
+  clearTimeout(saveTimeout);
+  saveTimeout = setTimeout(()=>{ saveData(); }, 1500);
+}
+
+// ── TAB SWITCH ───────────────────────────────────────────────────────────────
+function show(id,btn){
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  btn.classList.add('active');
+  document.querySelector('.scroll-area').scrollTop=0;
+}
+
+// ── INIT ──────────────────────────────────────────────────────────────────────
+buildYearNav();
+buildFonds();
+buildGloss();
+// Show login - don't auto-login for security
+// But allow bypass with Enter for convenience
+document.getElementById('login-user').focus();
+</script>
+</body>
+</html>
